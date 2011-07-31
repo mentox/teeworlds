@@ -14,7 +14,7 @@ MACRO_ALLOC_POOL_ID_IMPL(CPlayer, MAX_CLIENTS)
 
 IServer *CPlayer::Server() const { return m_pGameServer->Server(); }
 
-CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
+CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team, int GameTeam)
 {
 	m_pGameServer = pGameServer;
 	m_RespawnTick = Server()->Tick();
@@ -23,6 +23,7 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 	m_pCharacter = 0;
 	m_ClientID = ClientID;
 	m_Team = GameServer()->m_pController->ClampTeam(Team);
+	m_GameTeam = GameTeam;
 	m_SpectatorID = SPEC_FREEVIEW;
 	m_LastActionTick = Server()->Tick();
 	m_TeamChangeTick = Server()->Tick();
@@ -316,6 +317,13 @@ void CPlayer::SetTeam(int Team)
 	}
 }
 
+void CPlayer::SetGameTeam(int GameTeam)
+{
+	if(m_pCharacter && m_pCharacter->IsAlive())
+		KillCharacter(WEAPON_GAME);
+	m_GameTeam = GameTeam;
+}
+
 void CPlayer::TryRespawn()
 {
 	vec2 SpawnPos;
@@ -324,7 +332,7 @@ void CPlayer::TryRespawn()
 		return;
 
 	m_Spawning = false;
-	m_pCharacter = new(m_ClientID) CCharacter(&GameServer()->m_World);
+	m_pCharacter = new(m_ClientID) CCharacter(&GameServer()->m_World, m_GameTeam);
 	m_pCharacter->Spawn(this, SpawnPos);
 	GameServer()->CreatePlayerSpawn(SpawnPos, m_ClientID);
 }

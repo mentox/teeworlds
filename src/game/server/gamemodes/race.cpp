@@ -1,15 +1,19 @@
 /* copyright (c) 2007 rajh, race mod stuff */
+
 #include <engine/storage.h>
 #include <engine/shared/config.h>
+
+#include <game/server/gameworld.h>
 #include <game/server/entities/character.h>
+#include <game/server/entities/pickup.h>
 #include <game/server/player.h>
 #include <game/server/gamecontext.h>
 #include <game/server/score.h>
+
 #if defined(CONF_TEERACE)
 #include <game/server/webapp.h>
 #endif
-#include <stdio.h>
-#include <string.h>
+
 #include "race.h"
 
 CGameControllerRACE::CGameControllerRACE(class CGameContext *pGameServer) : IGameController(pGameServer)
@@ -61,11 +65,33 @@ void CGameControllerRACE::InitTeleporter()
 	}
 }
 
+int CGameControllerRACE::GetAutoGameTeam(int ClientID)
+{
+	return ClientID;
+}
+
 int CGameControllerRACE::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)
 {
 	int ClientID = pVictim->GetPlayer()->GetCID();
+	int GameTeam = pVictim->GetPlayer()->GetGameTeam();
 	m_aRace[ClientID].Reset();
-	
+
+	// remove projectiles if the player is dead to prevent cheating at start
+	if(g_Config.m_SvDeleteGrenadesAfterDeath)
+	{
+		for(CEntity *pEnt = GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_PROJECTILE); pEnt; pEnt = pEnt->TypeNext())
+			if(pEnt->Team() == GameTeam)
+				pEnt->Reset();
+
+		for(CEntity *pEnt = GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_LASER); pEnt; pEnt = pEnt->TypeNext())
+			if(pEnt->Team() == GameTeam)
+				pEnt->Reset();
+	}
+
+	// respawn pickups
+	for(CEntity *pEnt = GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_PICKUP); pEnt; pEnt = pEnt->TypeNext())
+		((CPickup *)pEnt)->Respawn(GameTeam);
+
 #if defined(CONF_TEERACE)
 	if(Server()->IsRecording(ClientID))
 		Server()->StopRecord(ClientID);
@@ -112,7 +138,7 @@ void CGameControllerRACE::Tick()
 			{
 				Msg.m_Check = (int)(p->m_CpDiff*100);
 				str_format(aTmp, sizeof(aTmp), "\nCheckpoint | Diff : %+5.2f", p->m_CpDiff);
-				strcat(aBuftime, aTmp);
+				str_append(aBuftime, aTmp, sizeof(aBuftime));
 			}
 
 			if(GameServer()->m_apPlayers[i]->m_IsUsingRaceClient)

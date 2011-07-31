@@ -47,7 +47,6 @@ public:
 	bool Get(const char *pName, float *pValue);
 };
 
-
 inline vec2 GetDirection(int Angle)
 {
 	float a = Angle/256.0f;
@@ -187,6 +186,8 @@ public:
 	int m_HookedPlayer;
 
 	int m_Jumped;
+
+	int m_Team;
 
 	int m_Direction;
 	int m_Angle;

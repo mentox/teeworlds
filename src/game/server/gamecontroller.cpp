@@ -50,11 +50,14 @@ float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos)
 	{
 		// team mates are not as dangerous as enemies
 		float Scoremod = 1.0f;
+		if(pEval->m_GameTeam != pC->GetPlayer()->GetGameTeam())
+			continue;
+
 		if(pEval->m_FriendlyTeam != -1 && pC->GetPlayer()->GetTeam() == pEval->m_FriendlyTeam)
 			Scoremod = 0.5f;
 
-		/*float d = distance(Pos, pC->m_Pos);
-		Score += Scoremod * (d == 0 ? 1000000000.0f : 1.0f/d);*/
+		float d = distance(Pos, pC->m_Pos);
+		Score += Scoremod * (d == 0 ? 1000000000.0f : 1.0f/d);
 	}
 
 	return Score;
@@ -388,7 +391,11 @@ bool IGameController::IsFriendlyFire(int ClientID1, int ClientID2)
 
 		if(GameServer()->m_apPlayers[ClientID1]->GetTeam() == GameServer()->m_apPlayers[ClientID2]->GetTeam())
 			return true;
+
 	}
+
+	if(GameServer()->GetPlayerTeam(ClientID1) == GameServer()->GetPlayerTeam(ClientID2))
+		return true;
 
 	return false;
 }
@@ -584,6 +591,11 @@ int IGameController::GetAutoTeam(int NotThisID)
 	return -1;
 }
 
+int IGameController::GetAutoGameTeam(int ClientID)
+{
+	return -1;
+}
+
 bool IGameController::CanJoinTeam(int Team, int NotThisID)
 {
 	if(Team == TEAM_SPECTATORS || (GameServer()->m_apPlayers[NotThisID] && GameServer()->m_apPlayers[NotThisID]->GetTeam() != TEAM_SPECTATORS))
@@ -721,3 +733,4 @@ int IGameController::ClampTeam(int Team)
 		return Team&1;
 	return 0;
 }
+

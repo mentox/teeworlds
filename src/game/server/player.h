@@ -13,7 +13,7 @@ class CPlayer
 	MACRO_ALLOC_POOL_ID()
 
 public:
-	CPlayer(CGameContext *pGameServer, int ClientID, int Team);
+	CPlayer(CGameContext *pGameServer, int ClientID, int Team, int GameTeam);
 	~CPlayer();
 
 	void Init(int CID);
@@ -22,6 +22,9 @@ public:
 	void Respawn();
 	void SetTeam(int Team);
 	int GetTeam() const { return m_Team; };
+	void SetGameTeam(int Team);
+	int GetGameTeam() const { return m_GameTeam; };
+	int GetSnappingTeam() const { return m_ShowOthers ? -1 : m_GameTeam; }
 	int GetCID() const { return m_ClientID; };
 
 	void Tick();
@@ -120,6 +123,7 @@ private:
 	bool m_Spawning;
 	int m_ClientID;
 	int m_Team;
+	int m_GameTeam;
 };
 
 #endif

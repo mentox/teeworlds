@@ -5,7 +5,7 @@
 #include "laser.h"
 
 CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner)
-: CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
+: CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER, pGameWorld->GameServer()->m_apPlayers[Owner]->GetGameTeam())
 {
 	m_Pos = Pos;
 	m_Owner = Owner;
@@ -66,7 +66,7 @@ void CLaser::DoBounce()
 			if(m_Bounces > GameServer()->Tuning()->m_LaserBounceNum)
 				m_Energy = -1;
 
-			GameServer()->CreateSound(m_Pos, SOUND_RIFLE_BOUNCE, CmaskRace(GameServer(), m_Owner));
+			GameServer()->CreateSound(m_Pos, SOUND_RIFLE_BOUNCE, GameServer()->PlayermaskAllTeam(m_Team));
 		}
 	}
 	else

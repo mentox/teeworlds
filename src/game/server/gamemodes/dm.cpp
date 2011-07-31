@@ -2,7 +2,7 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include "dm.h"
 
-
+/*
 CGameControllerDM::CGameControllerDM(class CGameContext *pGameServer)
 : IGameController(pGameServer)
 {
@@ -13,3 +13,5 @@ void CGameControllerDM::Tick()
 {
 	IGameController::Tick();
 }
+*/
+

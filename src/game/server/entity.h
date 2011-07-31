@@ -67,8 +67,9 @@ protected:
 	bool m_MarkedForDestroy;
 	int m_ID;
 	int m_ObjType;
+	int m_Team;
 public:
-	CEntity(CGameWorld *pGameWorld, int Objtype);
+	CEntity(CGameWorld *pGameWorld, int Objtype, int Team);
 	virtual ~CEntity();
 
 	class CGameWorld *GameWorld() { return m_pGameWorld; }
@@ -138,8 +139,12 @@ public:
 		Returns:
 			Non-zero if the entity doesn't have to be in the snapshot.
 	*/
+
+	virtual int Team() const { return m_Team; }
+
 	int NetworkClipped(int SnappingClient);
 	int NetworkClipped(int SnappingClient, vec2 CheckPos);
+	int NetworkClipped(int SnappingClient, vec2 CheckPos, int Team);
 
 	bool GameLayerClipped(vec2 CheckPos);
 

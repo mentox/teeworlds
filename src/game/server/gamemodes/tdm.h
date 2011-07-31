@@ -2,6 +2,7 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #ifndef GAME_SERVER_GAMEMODES_TDM_H
 #define GAME_SERVER_GAMEMODES_TDM_H
+/*
 #include <game/server/gamecontroller.h>
 
 class CGameControllerTDM : public IGameController
@@ -13,4 +14,5 @@ public:
 	virtual void Snap(int SnappingClient);
 	virtual void Tick();
 };
+*/
 #endif

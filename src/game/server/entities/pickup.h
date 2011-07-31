@@ -12,6 +12,8 @@ class CPickup : public CEntity
 public:
 	CPickup(CGameWorld *pGameWorld, int Type, int SubType = 0);
 
+	void Respawn(int Team);
+
 	virtual void Reset();
 	virtual void Tick();
 	virtual void Snap(int SnappingClient);
@@ -19,7 +21,7 @@ public:
 private:
 	int m_Type;
 	int m_Subtype;
-	int m_SpawnTick[MAX_CLIENTS];
+	int m_aSpawnTick[MAX_CLIENTS];
 };
 
 #endif

@@ -58,6 +58,8 @@ public:
 	virtual bool OnRaceStart(int ID, float StartAddTime, bool Check=true);
 	virtual bool OnRaceEnd(int ID, float FinishTime);
 
+	virtual int GetAutoGameTeam(int ClientID);
+
 	float GetTime(int ID);
 };
 

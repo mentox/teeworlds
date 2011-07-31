@@ -7,11 +7,12 @@
 //////////////////////////////////////////////////
 // Entity
 //////////////////////////////////////////////////
-CEntity::CEntity(CGameWorld *pGameWorld, int ObjType)
+CEntity::CEntity(CGameWorld *pGameWorld, int ObjType, int Team)
 {
 	m_pGameWorld = pGameWorld;
 
 	m_ObjType = ObjType;
+	m_Team = Team;
 	m_Pos = vec2(0,0);
 	m_ProximityRadius = 0;
 
@@ -35,8 +36,17 @@ int CEntity::NetworkClipped(int SnappingClient)
 
 int CEntity::NetworkClipped(int SnappingClient, vec2 CheckPos)
 {
+	return NetworkClipped(SnappingClient, CheckPos, m_Team);
+}
+
+int CEntity::NetworkClipped(int SnappingClient, vec2 CheckPos, int Team)
+{
 	if(SnappingClient == -1)
 		return 0;
+
+	int SnappingTeam = GameServer()->m_apPlayers[SnappingClient]->GetSnappingTeam();
+	if(Team != -1 && SnappingTeam != -1 && Team != SnappingTeam)
+		return 1;
 
 	float dx = GameServer()->m_apPlayers[SnappingClient]->m_ViewPos.x-CheckPos.x;
 	float dy = GameServer()->m_apPlayers[SnappingClient]->m_ViewPos.y-CheckPos.y;

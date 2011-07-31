@@ -38,7 +38,7 @@ CEntity *CGameWorld::FindFirst(int Type)
 	return Type < 0 || Type >= NUM_ENTTYPES ? 0 : m_apFirstEntityTypes[Type];
 }
 
-int CGameWorld::FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, int Type)
+int CGameWorld::FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, int Type, int Team)
 {
 	if(Type < 0 || Type >= NUM_ENTTYPES)
 		return 0;
@@ -48,11 +48,15 @@ int CGameWorld::FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, 
 	{
 		if(distance(pEnt->m_Pos, Pos) < Radius+pEnt->m_ProximityRadius)
 		{
-			if(ppEnts)
-				ppEnts[Num] = pEnt;
-			Num++;
-			if(Num == Max)
-				break;
+			int EntitiyTeam = pEnt->Team();
+			if(Team == -1 || EntitiyTeam == -1 || Team == EntitiyTeam)
+			{
+				if(ppEnts)
+					ppEnts[Num] = pEnt;
+				Num++;
+				if(Num == Max)
+					break;
+			}
 		}
 	}
 
@@ -187,7 +191,7 @@ void CGameWorld::Tick()
 
 
 // TODO: should be more general
-CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, vec2& NewPos, CEntity *pNotThis)
+CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, vec2& NewPos, CEntity *pNotThis, int Team)
 {
 	// Find other players
 	float ClosestLen = distance(Pos0, Pos1) * 100.0f;
@@ -197,6 +201,9 @@ CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, v
 	for(; p; p = (CCharacter *)p->TypeNext())
  	{
 		if(p == pNotThis)
+			continue;
+
+		if(Team != -1 && p->m_Team != -1 && Team != p->m_Team)
 			continue;
 
 		vec2 IntersectPos = closest_point_on_line(Pos0, Pos1, p->m_Pos);

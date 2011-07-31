@@ -122,7 +122,7 @@ void CGameContext::CreateDamageInd(vec2 Pos, float Angle, int Amount, int Owner)
 	for(int i = 0; i < Amount; i++)
 	{
 		float f = mix(s, e, float(i+1)/float(Amount+2));
-		CNetEvent_DamageInd *pEvent = (CNetEvent_DamageInd *)m_Events.Create(NETEVENTTYPE_DAMAGEIND, sizeof(CNetEvent_DamageInd), CmaskRace(this, Owner));
+		CNetEvent_DamageInd *pEvent = (CNetEvent_DamageInd *)m_Events.Create(NETEVENTTYPE_DAMAGEIND, sizeof(CNetEvent_DamageInd), PlayermaskAllTeam(GetPlayerTeam(Owner)));
 		if(pEvent)
 		{
 			pEvent->m_X = (int)Pos.x;
@@ -147,7 +147,7 @@ void CGameContext::CreateHammerHit(vec2 Pos)
 void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage)
 {
 	// create the event
-	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion), CmaskRace(this, Owner));
+	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion), PlayermaskAllTeam(GetPlayerTeam(Owner)));
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -160,7 +160,7 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 		CCharacter *apEnts[MAX_CLIENTS];
 		float Radius = 135.0f;
 		float InnerRadius = 48.0f;
-		int Num = m_World.FindEntities(Pos, Radius, (CEntity**)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+		int Num = m_World.FindEntities(Pos, Radius, (CEntity**)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, GetPlayerTeam(Owner));
 		for(int i = 0; i < Num; i++)
 		{
 			vec2 Diff = apEnts[i]->m_Pos - Pos;
@@ -191,7 +191,7 @@ void create_smoke(vec2 Pos)
 void CGameContext::CreatePlayerSpawn(vec2 Pos, int ClientID)
 {
 	// create the event
-	CNetEvent_Spawn *ev = (CNetEvent_Spawn *)m_Events.Create(NETEVENTTYPE_SPAWN, sizeof(CNetEvent_Spawn), CmaskRace(this, ClientID));
+	CNetEvent_Spawn *ev = (CNetEvent_Spawn *)m_Events.Create(NETEVENTTYPE_SPAWN, sizeof(CNetEvent_Spawn), PlayermaskAllTeam(GetPlayerTeam(ClientID)));
 	if(ev)
 	{
 		ev->m_X = (int)Pos.x;
@@ -202,7 +202,7 @@ void CGameContext::CreatePlayerSpawn(vec2 Pos, int ClientID)
 void CGameContext::CreateDeath(vec2 Pos, int ClientID)
 {
 	// create the event
-	CNetEvent_Death *pEvent = (CNetEvent_Death *)m_Events.Create(NETEVENTTYPE_DEATH, sizeof(CNetEvent_Death), CmaskRace(this, ClientID));
+	CNetEvent_Death *pEvent = (CNetEvent_Death *)m_Events.Create(NETEVENTTYPE_DEATH, sizeof(CNetEvent_Death), PlayermaskAllTeam(GetPlayerTeam(ClientID)));
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -622,7 +622,9 @@ void CGameContext::OnClientConnected(int ClientID)
 	// Check which team the player should be on
 	const int StartTeam = g_Config.m_SvTournamentMode ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientID);
 
-	m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, StartTeam);
+	const int StartGameTeam = m_pController->GetAutoGameTeam(ClientID);
+
+	m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, StartTeam, StartGameTeam);
 	//players[client_id].init(client_id);
 	//players[client_id].client_id = client_id;
 
@@ -1914,14 +1916,29 @@ bool CGameContext::IsClientPlayer(int ClientID)
 }
 
 const char *CGameContext::GameType() { return m_pController && m_pController->m_pGameType ? m_pController->m_pGameType : ""; }
-int CmaskRace(CGameContext *pGameServer, int Owner)
+
+int CGameContext::GetPlayerTeam(int ClientID)
 {
+	if(ClientID == -1)
+		return -1;
+	if(!m_apPlayers[ClientID])
+		return -1;
+	return m_apPlayers[ClientID]->GetGameTeam();
+}
+
+int CGameContext::PlayermaskAllTeam(int Team)
+{
+	if(Team == -1)
+		return CmaskAll();
+
 	int Mask = 0;
+
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(pGameServer->m_apPlayers[i] && (pGameServer->m_apPlayers[i]->m_ShowOthers || i == Owner))
-			Mask = Mask|(1<<i);
+		if(m_apPlayers[i] && (m_apPlayers[i]->GetSnappingTeam() == -1 || m_apPlayers[i]->GetSnappingTeam() == Team))
+			Mask |= (1 << i);
 	}
+
 	return Mask;
 }
 

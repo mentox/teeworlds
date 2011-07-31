@@ -4,6 +4,7 @@
 #define GAME_SERVER_GAMECONTROLLER_H
 
 #include <base/vmath.h>
+#include <engine/shared/protocol.h>
 
 /*
 	Class: Game Controller
@@ -28,12 +29,14 @@ protected:
 		{
 			m_Got = false;
 			m_FriendlyTeam = -1;
+			m_GameTeam = 0;
 			m_Pos = vec2(100,100);
 		}
 
 		vec2 m_Pos;
 		bool m_Got;
 		int m_FriendlyTeam;
+		int m_GameTeam;
 		float m_Score;
 	};
 
@@ -139,6 +142,8 @@ public:
 	bool CheckTeamBalance();
 	bool CanChangeTeam(CPlayer *pPplayer, int JoinTeam);
 	int ClampTeam(int Team);
+
+	virtual int GetAutoGameTeam(int ClientID);
 
 	virtual void PostReset();
 	

@@ -15,6 +15,11 @@
 #include "gameworld.h"
 #include "player.h"
 
+inline int CmaskAll() { return -1; }
+inline int CmaskOne(int ClientID) { return 1<<ClientID; }
+inline int CmaskAllExceptOne(int ClientID) { return 0x7fffffff^CmaskOne(ClientID); }
+inline bool CmaskIsSet(int Mask, int ClientID) { return (Mask&CmaskOne(ClientID)) != 0; }
+
 /*
 	Tick
 		Game Context (CGameContext::tick)
@@ -194,11 +199,12 @@ public:
 	virtual const char *GameType();
 	virtual const char *Version();
 	virtual const char *NetVersion();
+
+	int GetPlayerTeam(int ClientID); 
+
+	int PlayermaskAllTeam(int Team);
+	int PlayermaskOne(int ClientID) { return CmaskOne(ClientID); }
+	int PlayermaskAllExceptOneTeam(int ClientID, int Team) { return CmaskAllExceptOne(ClientID) & PlayermaskAllTeam(ClientID); }
 };
 
-inline int CmaskAll() { return -1; }
-inline int CmaskOne(int ClientID) { return 1<<ClientID; }
-inline int CmaskAllExceptOne(int ClientID) { return 0x7fffffff^CmaskOne(ClientID); }
-int CmaskRace(CGameContext *pGameServer, int Owner);
-inline bool CmaskIsSet(int Mask, int ClientID) { return (Mask&CmaskOne(ClientID)) != 0; }
 #endif

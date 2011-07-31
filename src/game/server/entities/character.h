@@ -31,7 +31,7 @@ public:
 		RACE_FINISHED,
 	};
 
-	CCharacter(CGameWorld *pWorld);
+	CCharacter(CGameWorld *pWorld, int Team);
 
 	virtual void Reset();
 	virtual void Destroy();
@@ -74,7 +74,7 @@ public:
 	
 	bool HasWeapon(int Weapon) { return m_aWeapons[Weapon].m_Got; }
 	int Armor() { return m_Armor; }
-	
+
 private:
 	// player controlling this character
 	class CPlayer *m_pPlayer;

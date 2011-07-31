@@ -72,6 +72,7 @@ void CCharacterCore::Reset()
 	m_HookedPlayer = -1;
 	m_Jumped = 0;
 	m_TriggeredEvents = 0;
+	m_Team = 0;
 }
 
 void CCharacterCore::Tick(bool UseInput)
@@ -213,7 +214,7 @@ void CCharacterCore::Tick(bool UseInput)
 			for(int i = 0; i < MAX_CLIENTS; i++)
 			{
 				CCharacterCore *pCharCore = m_pWorld->m_apCharacters[i];
-				if(!pCharCore || pCharCore == this)
+				if(!pCharCore || pCharCore == this || m_Team != pCharCore->m_Team)
 					continue;
 
 				vec2 ClosestPoint = closest_point_on_line(m_HookPos, NewPos, pCharCore->m_Pos);
@@ -253,7 +254,7 @@ void CCharacterCore::Tick(bool UseInput)
 		if(m_HookedPlayer != -1)
 		{
 			CCharacterCore *pCharCore = m_pWorld->m_apCharacters[m_HookedPlayer];
-			if(pCharCore)
+			if(pCharCore && m_Team == pCharCore->m_Team)
 				m_HookPos = pCharCore->m_Pos;
 			else
 			{
@@ -307,12 +308,8 @@ void CCharacterCore::Tick(bool UseInput)
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
 			CCharacterCore *pCharCore = m_pWorld->m_apCharacters[i];
-			if(!pCharCore)
-				continue;
-
-			//player *p = (player*)ent;
-			if(pCharCore == this) // || !(p->flags&FLAG_ALIVE)
-				continue; // make sure that we don't nudge our self
+			if(!pCharCore || pCharCore == this || m_Team != pCharCore->m_Team)
+				continue; // make sure that we don't nudge ourself or someone from a different team
 
 			// handle player <-> player collision
 			float Distance = distance(m_Pos, pCharCore->m_Pos);
@@ -379,7 +376,7 @@ void CCharacterCore::Move()
 			for(int p = 0; p < MAX_CLIENTS; p++)
 			{
 				CCharacterCore *pCharCore = m_pWorld->m_apCharacters[p];
-				if(!pCharCore || pCharCore == this)
+				if(!pCharCore || pCharCore == this || m_Team != pCharCore->m_Team)
 					continue;
 				float D = distance(Pos, pCharCore->m_Pos);
 				if(D < 28.0f*1.25f && D > 0.0f)
