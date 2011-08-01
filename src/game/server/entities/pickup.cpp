@@ -46,7 +46,7 @@ void CPickup::Tick()
 				m_aSpawnTick[i] = -1;
 
 				if(m_Type == POWERUP_WEAPON)
-					GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, CmaskAll());
+					GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, GameServer()->PlayermaskAllTeam(i));
 			}
 		}
 	}
