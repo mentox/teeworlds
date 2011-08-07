@@ -713,169 +713,173 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
  		{
 			pPlayer->m_LastChat = Server()->Tick();
 			
-			if(!str_comp(pMsg->m_pMessage, "/info"))
+			if(pMsg->m_pMessage[0] == '/')
 			{
-				char aBuf[128];
-				str_format(aBuf, sizeof(aBuf), "Race mod %s (C)Rajh, Redix and Sushi (%s)", RACE_VERSION, Server()->ClientName(ClientID));
-				SendChatTarget(-1, aBuf);
-#if defined(CONF_TEERACE)
-				str_format(aBuf, sizeof(aBuf), "Please visit 'http://%s/about/' for more information about teerace.", g_Config.m_SvWebappIp);
-				SendChatTarget(-1, aBuf);
-#endif
-			}
-			else if(!str_comp_num(pMsg->m_pMessage, "/top5", 5))
-			{
-				if(!g_Config.m_SvShowTimes)
+				const char *pCommand = pMsg->m_pMessage + 1;
+				if(!str_comp(pCommand, "info"))
 				{
-					SendChatTarget(ClientID, "Showing the Top5 is not allowed on this server.");
-					return;
+					char aBuf[128];
+					str_format(aBuf, sizeof(aBuf), "Race mod %s (C)Rajh, Redix and Sushi (%s)", RACE_VERSION, Server()->ClientName(ClientID));
+					SendChatTarget(-1, aBuf);
+	#if defined(CONF_TEERACE)
+					str_format(aBuf, sizeof(aBuf), "Please visit 'http://%s/about/' for more information about teerace.", g_Config.m_SvWebappIp);
+					SendChatTarget(-1, aBuf);
+	#endif
 				}
-				
-				int Num = 1;
-				
-				if(sscanf(pMsg->m_pMessage, "/top5 %d", &Num) == 1)
-					Score()->ShowTop5(pPlayer->GetCID(), Num);
-				else
-					Score()->ShowTop5(pPlayer->GetCID());
-				
-#if defined(CONF_TEERACE)
-				if(m_pWebapp->CurrentMap()->m_ID > -1)
+				else if(!str_comp_num(pCommand, "top5", 5))
 				{
-					if(!m_pWebapp->DefaultScoring())
+					if(!g_Config.m_SvShowTimes)
 					{
-						CWebTop::CParam *pParams = new CWebTop::CParam();
-						pParams->m_Start = Num;
-						pParams->m_ClientID = ClientID;
-						m_pWebapp->AddJob(CWebTop::GetTop5, pParams);
+						SendChatTarget(ClientID, "Showing the Top5 is not allowed on this server.");
+						return;
 					}
-				}
-				else
-					SendChatTarget(ClientID, "This map is not a teerace map.");
-#endif
-			}
-			else if(!str_comp_num(pMsg->m_pMessage, "/rank", 5))
-			{
-				char aName[256];
-				
-				if(g_Config.m_SvShowTimes && sscanf(pMsg->m_pMessage, "/rank %s", aName) == 1)
-				{
-					Score()->ShowRank(pPlayer->GetCID(), aName, true);
 					
-#if defined(CONF_TEERACE)
+					int Num = 1;
+					
+					if(sscanf(pCommand, "top5 %d", &Num) == 1)
+						Score()->ShowTop5(pPlayer->GetCID(), Num);
+					else
+						Score()->ShowTop5(pPlayer->GetCID());
+					
+	#if defined(CONF_TEERACE)
 					if(m_pWebapp->CurrentMap()->m_ID > -1)
 					{
-						int UserID = 0;
-						// search for players on the server
-						for(int i = 0; i < MAX_CLIENTS; i++)
+						if(!m_pWebapp->DefaultScoring())
 						{
-							// search for 100% match
-							if(m_apPlayers[i] && Server()->GetUserID(i) > 0 && (!str_comp(Server()->ClientName(i), aName) || !str_comp(Server()->GetUserName(i), aName)))
-							{
-								UserID = Server()->GetUserID(i);
-								str_copy(aName, Server()->GetUserName(i), sizeof(aName));
-								break;
-							}
+							CWebTop::CParam *pParams = new CWebTop::CParam();
+							pParams->m_Start = Num;
+							pParams->m_ClientID = ClientID;
+							m_pWebapp->AddJob(CWebTop::GetTop5, pParams);
 						}
+					}
+					else
+						SendChatTarget(ClientID, "This map is not a teerace map.");
+	#endif
+				}
+				else if(!str_comp_num(pCommand, "rank", 5))
+				{
+					char aName[256];
+					
+					if(g_Config.m_SvShowTimes && sscanf(pCommand, "rank %s", aName) == 1)
+					{
+						Score()->ShowRank(pPlayer->GetCID(), aName, true);
 						
-						if(!UserID)
+	#if defined(CONF_TEERACE)
+						if(m_pWebapp->CurrentMap()->m_ID > -1)
 						{
+							int UserID = 0;
 							// search for players on the server
 							for(int i = 0; i < MAX_CLIENTS; i++)
 							{
-								// search for part match
-								if(m_apPlayers[i] && Server()->GetUserID(i) > 0 && (str_find_nocase(Server()->ClientName(i), aName) || str_find_nocase(Server()->GetUserName(i), aName)))
+								// search for 100% match
+								if(m_apPlayers[i] && Server()->GetUserID(i) > 0 && (!str_comp(Server()->ClientName(i), aName) || !str_comp(Server()->GetUserName(i), aName)))
 								{
 									UserID = Server()->GetUserID(i);
 									str_copy(aName, Server()->GetUserName(i), sizeof(aName));
 									break;
 								}
 							}
-						}
-						
-						CWebUser::CParam *pParams = new CWebUser::CParam();
-						str_copy(pParams->m_aName, aName, sizeof(pParams->m_aName));
-						pParams->m_ClientID = ClientID;
-						pParams->m_UserID = UserID;
-						m_pWebapp->AddJob(CWebUser::GetRank, pParams);
-					}
-					else
-						SendChatTarget(ClientID, "This map is not a teerace map.");
-#endif
-				}
-				else
-				{
-					Score()->ShowRank(pPlayer->GetCID(), Server()->ClientName(ClientID));
-					
-#if defined(CONF_TEERACE)
-					if(m_pWebapp->CurrentMap()->m_ID > -1)
-					{
-						if(Server()->GetUserID(ClientID) > 0)
-						{
+							
+							if(!UserID)
+							{
+								// search for players on the server
+								for(int i = 0; i < MAX_CLIENTS; i++)
+								{
+									// search for part match
+									if(m_apPlayers[i] && Server()->GetUserID(i) > 0 && (str_find_nocase(Server()->ClientName(i), aName) || str_find_nocase(Server()->GetUserName(i), aName)))
+									{
+										UserID = Server()->GetUserID(i);
+										str_copy(aName, Server()->GetUserName(i), sizeof(aName));
+										break;
+									}
+								}
+							}
+							
 							CWebUser::CParam *pParams = new CWebUser::CParam();
-							str_copy(pParams->m_aName, Server()->GetUserName(ClientID), sizeof(pParams->m_aName));
+							str_copy(pParams->m_aName, aName, sizeof(pParams->m_aName));
 							pParams->m_ClientID = ClientID;
-							pParams->m_UserID = Server()->GetUserID(ClientID);
+							pParams->m_UserID = UserID;
 							m_pWebapp->AddJob(CWebUser::GetRank, pParams);
 						}
 						else
-							SendChatTarget(ClientID, "To get globally ranked create an account at http://race.teesites.net and login.");
+							SendChatTarget(ClientID, "This map is not a teerace map.");
+	#endif
 					}
 					else
+					{
+						Score()->ShowRank(pPlayer->GetCID(), Server()->ClientName(ClientID));
+						
+	#if defined(CONF_TEERACE)
+						if(m_pWebapp->CurrentMap()->m_ID > -1)
+						{
+							if(Server()->GetUserID(ClientID) > 0)
+							{
+								CWebUser::CParam *pParams = new CWebUser::CParam();
+								str_copy(pParams->m_aName, Server()->GetUserName(ClientID), sizeof(pParams->m_aName));
+								pParams->m_ClientID = ClientID;
+								pParams->m_UserID = Server()->GetUserID(ClientID);
+								m_pWebapp->AddJob(CWebUser::GetRank, pParams);
+							}
+							else
+								SendChatTarget(ClientID, "To get globally ranked create an account at http://race.teesites.net and login.");
+						}
+						else
+							SendChatTarget(ClientID, "This map is not a teerace map.");
+	#endif
+					}
+				}
+	#if defined(CONF_TEERACE)
+				else if(!str_comp(pCommand, "mapinfo"))
+				{
+					if(m_pWebapp->CurrentMap()->m_ID < 0)
+					{
 						SendChatTarget(ClientID, "This map is not a teerace map.");
-#endif
-				}
-			}
-#if defined(CONF_TEERACE)
-			else if(!str_comp(pMsg->m_pMessage, "/mapinfo"))
-			{
-				if(m_pWebapp->CurrentMap()->m_ID < 0)
-				{
-					SendChatTarget(ClientID, "This map is not a teerace map.");
-					return;
-				}
+						return;
+					}
 
-				char aBuf[256];
-				SendChatTarget(ClientID, "----------- Mapinfo -----------");
-				str_format(aBuf, sizeof(aBuf), "Name: %s", m_pWebapp->MapName());
-				SendChatTarget(ClientID, aBuf);
-				str_format(aBuf, sizeof(aBuf), "Author: %s", m_pWebapp->CurrentMap()->m_aAuthor);
-				SendChatTarget(ClientID, aBuf);
-				str_format(aBuf, sizeof(aBuf), "URL: http://%s%s", g_Config.m_SvWebappIp, m_pWebapp->CurrentMap()->m_aURL);
-				SendChatTarget(ClientID, aBuf);
-				str_format(aBuf, sizeof(aBuf), "Finished runs: %d", m_pWebapp->CurrentMap()->m_RunCount);
-				SendChatTarget(ClientID, aBuf);
-				SendChatTarget(ClientID, "-------------------------------");
-			}
-#endif
-			else if(!str_comp(pMsg->m_pMessage, "/show_others"))
-			{
-				if(!g_Config.m_SvShowOthers && !Server()->IsAuthed(ClientID))
-				{
-					SendChatTarget(ClientID, "This command is not allowed on this server.");
-					return;
+					char aBuf[256];
+					SendChatTarget(ClientID, "----------- Mapinfo -----------");
+					str_format(aBuf, sizeof(aBuf), "Name: %s", m_pWebapp->MapName());
+					SendChatTarget(ClientID, aBuf);
+					str_format(aBuf, sizeof(aBuf), "Author: %s", m_pWebapp->CurrentMap()->m_aAuthor);
+					SendChatTarget(ClientID, aBuf);
+					str_format(aBuf, sizeof(aBuf), "URL: http://%s%s", g_Config.m_SvWebappIp, m_pWebapp->CurrentMap()->m_aURL);
+					SendChatTarget(ClientID, aBuf);
+					str_format(aBuf, sizeof(aBuf), "Finished runs: %d", m_pWebapp->CurrentMap()->m_RunCount);
+					SendChatTarget(ClientID, aBuf);
+					SendChatTarget(ClientID, "-------------------------------");
 				}
-				
-				if(pPlayer->m_IsUsingRaceClient)
-					SendChatTarget(ClientID, "Please use the settings to switch this option.");
+	#endif
+				else if(!str_comp(pCommand, "show_others"))
+				{
+					if(!g_Config.m_SvShowOthers && !Server()->IsAuthed(ClientID))
+					{
+						SendChatTarget(ClientID, "This command is not allowed on this server.");
+						return;
+					}
+					
+					if(pPlayer->m_IsUsingRaceClient)
+						SendChatTarget(ClientID, "Please use the settings to switch this option.");
+					else
+						pPlayer->m_ShowOthers = !pPlayer->m_ShowOthers;
+				}
+				else if(!str_comp(pCommand, "cmdlist"))
+				{
+					SendChatTarget(ClientID, "---Command List---");
+					SendChatTarget(ClientID, "\"/info\" information about the mod");
+					SendChatTarget(ClientID, "\"/rank\" shows your rank");
+					SendChatTarget(ClientID, "\"/rank NAME\" shows the rank of a specific player");
+					SendChatTarget(ClientID, "\"/top5 X\" shows the top 5");
+	#if defined(CONF_TEERACE)
+					SendChatTarget(ClientID, "\"/mapinfo\" shows infos about the map");
+	#endif
+					SendChatTarget(ClientID, "\"/show_others\" show other players?");
+				}
 				else
-					pPlayer->m_ShowOthers = !pPlayer->m_ShowOthers;
-			}
-			else if(!str_comp(pMsg->m_pMessage, "/cmdlist"))
-			{
-				SendChatTarget(ClientID, "---Command List---");
-				SendChatTarget(ClientID, "\"/info\" information about the mod");
-				SendChatTarget(ClientID, "\"/rank\" shows your rank");
-				SendChatTarget(ClientID, "\"/rank NAME\" shows the rank of a specific player");
-				SendChatTarget(ClientID, "\"/top5 X\" shows the top 5");
-#if defined(CONF_TEERACE)
-				SendChatTarget(ClientID, "\"/mapinfo\" shows infos about the map");
-#endif
-				SendChatTarget(ClientID, "\"/show_others\" show other players?");
-			}
-			else if(!str_comp_num(pMsg->m_pMessage, "/", 1))
-			{
-				SendChatTarget(ClientID, "Wrong command.");
-				SendChatTarget(ClientID, "Say \"/cmdlist\" for list of command available.");
+				{
+					SendChatTarget(ClientID, "Wrong command.");
+					SendChatTarget(ClientID, "Say \"/cmdlist\" for list of command available.");
+				}
 			}
 			else
 			{
