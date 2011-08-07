@@ -69,6 +69,8 @@ public:
 	bool IsTeamplay() const;
 
 	virtual bool IsHammerParty() const { return false; }
+	virtual bool FakeCollisionTune() const { return false; }
+	virtual bool FakeHookTune() const { return false; }
 
 	IGameController(class CGameContext *pGameServer);
 	virtual ~IGameController();

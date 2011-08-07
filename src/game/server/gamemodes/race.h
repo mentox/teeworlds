@@ -41,6 +41,9 @@ public:
 	
 	CGameControllerRACE(class CGameContext *pGameServer);
 	~CGameControllerRACE();
+
+	virtual bool FakeCollisionTune() const { return true; }
+	virtual bool FakeHookTune() const { return true; }
 	
 	vec2 *m_pTeleporter;
 	

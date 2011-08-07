@@ -427,7 +427,12 @@ void CGameContext::SendTuningParams(int ClientID)
 	CheckPureTuning();
 
 	CMsgPacker Msg(NETMSGTYPE_SV_TUNEPARAMS);
-	int *pParams = (int *)&m_Tuning;
+	CTuningParams p = m_Tuning;
+	if(m_pController->FakeCollisionTune())
+		p.Set("player_collision", 0);
+	if(m_pController->FakeHookTune())
+		p.Set("player_hooking", 0);
+	int *pParams = (int *)&p;
 	for(unsigned i = 0; i < sizeof(m_Tuning)/sizeof(int); i++)
 		Msg.AddInt(pParams[i]);
 	Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);

@@ -195,7 +195,7 @@ public:
 
 	int m_TriggeredEvents;
 
-	void Init(CWorldCore *pWorld, CCollision *pCollision);
+	void Init(CWorldCore *pWorld, CCollision *pCollision, int Team = 0);
 	void Reset();
 	void Tick(bool UseInput);
 	void Move();
