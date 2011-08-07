@@ -22,6 +22,7 @@
 
 #include "gamemodes/race.h"
 #include "gamemodes/fastcap.h"
+#include "gamemodes/hprace.h"
 #include "score.h"
 #if defined(CONF_SQL)
 #include "score/sql_score.h"
@@ -132,10 +133,10 @@ void CGameContext::CreateDamageInd(vec2 Pos, float Angle, int Amount, int Owner)
 	}
 }
 
-void CGameContext::CreateHammerHit(vec2 Pos)
+void CGameContext::CreateHammerHit(vec2 Pos, int Owner)
 {
 	// create the event
-	CNetEvent_HammerHit *pEvent = (CNetEvent_HammerHit *)m_Events.Create(NETEVENTTYPE_HAMMERHIT, sizeof(CNetEvent_HammerHit));
+	CNetEvent_HammerHit *pEvent = (CNetEvent_HammerHit *)m_Events.Create(NETEVENTTYPE_HAMMERHIT, sizeof(CNetEvent_HammerHit), PlayermaskAllTeam(GetPlayerTeam(Owner)));
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -1784,7 +1785,9 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		m_pController = new CGameControllerTDM(this);
 	else*/
 
-	if(str_find_nocase(g_Config.m_SvGametype, "cap"))
+	if(str_comp_nocase(g_Config.m_SvGametype, "hprace") == 0)
+		m_pController = new CGameControllerHPRACE(this);
+	else if(str_find_nocase(g_Config.m_SvGametype, "cap"))
 		m_pController = new CGameControllerFC(this);
 	else
 		m_pController = new CGameControllerRACE(this);

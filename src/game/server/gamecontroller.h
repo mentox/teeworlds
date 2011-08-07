@@ -68,6 +68,8 @@ public:
 
 	bool IsTeamplay() const;
 
+	virtual bool IsHammerParty() const { return false; }
+
 	IGameController(class CGameContext *pGameServer);
 	virtual ~IGameController();
 
