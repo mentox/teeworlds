@@ -875,6 +875,19 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 	#endif
 					SendChatTarget(ClientID, "\"/show_others\" show other players?");
 				}
+				else if(!str_comp_num(pCommand, "with", 4) && m_pController->CanUsePartnerCommands())
+				{
+					if((unsigned) str_length(pCommand) > sizeof("with "))
+					{
+						char aName[64];
+						str_copy(aName, pCommand + 5, sizeof(aName));
+						while(aName[str_length(aName) - 1] == ' ')
+							aName[str_length(aName) - 1] = 0;
+						((CGameControllerHPRACE *)m_pController)->ChatCommandWith(ClientID, aName);
+					}
+					else
+						((CGameControllerHPRACE *)m_pController)->ChatCommandWith(ClientID);
+				}
 				else
 				{
 					SendChatTarget(ClientID, "Wrong command.");
