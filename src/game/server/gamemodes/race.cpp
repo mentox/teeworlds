@@ -74,31 +74,48 @@ int CGameControllerRACE::OnCharacterDeath(class CCharacter *pVictim, class CPlay
 {
 	int ClientID = pVictim->GetPlayer()->GetCID();
 	int GameTeam = pVictim->GetPlayer()->GetGameTeam();
-	m_aRace[ClientID].Reset();
 
-	// remove projectiles if the player is dead to prevent cheating at start
-	if(g_Config.m_SvDeleteGrenadesAfterDeath)
+	m_aPlayerRace[ClientID].m_State = RACE_TEAM_STARTED;
+
+	bool Reset = 1;
+
+	for(int i = 0; i < MAX_CLIENTS; i++)
+		if(GameServer()->m_apPlayers[i]->GetGameTeam() == GameTeam)
+			if(m_aPlayerRace[i].m_State != RACE_TEAM_STARTED)
+			{
+				Reset = 0;
+				break;
+			}
+
+	if(Reset)
 	{
-		for(CEntity *pEnt = GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_PROJECTILE); pEnt; pEnt = pEnt->TypeNext())
-			if(pEnt->Team() == GameTeam)
-				pEnt->Reset();
+		for(int i = 0; i < MAX_CLIENTS; i++)
+			if(GameServer()->m_apPlayers[i]->GetGameTeam() == GameTeam)
+				m_aPlayerRace[i].m_State = RACE_NONE;
+		// remove projectiles if the player is dead to prevent cheating at start
+		if(g_Config.m_SvDeleteGrenadesAfterDeath)
+		{
+			for(CEntity *pEnt = GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_PROJECTILE); pEnt; pEnt = pEnt->TypeNext())
+				if(pEnt->Team() == GameTeam)
+					pEnt->Reset();
 
-		for(CEntity *pEnt = GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_LASER); pEnt; pEnt = pEnt->TypeNext())
-			if(pEnt->Team() == GameTeam)
-				pEnt->Reset();
-	}
+			for(CEntity *pEnt = GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_LASER); pEnt; pEnt = pEnt->TypeNext())
+				if(pEnt->Team() == GameTeam)
+					pEnt->Reset();
+		}
 
-	// respawn pickups
-	for(CEntity *pEnt = GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_PICKUP); pEnt; pEnt = pEnt->TypeNext())
-		((CPickup *)pEnt)->Respawn(GameTeam);
+		// respawn pickups
+		for(CEntity *pEnt = GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_PICKUP); pEnt; pEnt = pEnt->TypeNext())
+			((CPickup *)pEnt)->Respawn(GameTeam);
 
 #if defined(CONF_TEERACE)
-	if(Server()->IsRecording(ClientID))
-		Server()->StopRecord(ClientID);
+		if(Server()->IsRecording(ClientID))
+			Server()->StopRecord(ClientID);
 	
-	if(Server()->IsGhostRecording(ClientID))
-		Server()->StopGhostRecord(ClientID);
+		if(Server()->IsGhostRecording(ClientID))
+			Server()->StopGhostRecord(ClientID);
 #endif
+	}
 
 	return 0;
 }
@@ -119,9 +136,12 @@ void CGameControllerRACE::Tick()
 
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		CRaceData *p = &m_aRace[i];
+		if(!GameServer()->m_apPlayers[i])
+			continue;
 
-		if(p->m_RaceState == RACE_STARTED && Server()->Tick()-p->m_RefreshTime >= Server()->TickSpeed())
+		CRaceData *p = &m_aRace[GameServer()->m_apPlayers[i]->GetGameTeam()];
+
+		if((p->m_RaceState == RACE_STARTED) && Server()->Tick()-p->m_RefreshTime >= Server()->TickSpeed())
 		{
 			int IntTime = (int)GetTime(i);
 
@@ -136,8 +156,8 @@ void CGameControllerRACE::Tick()
 
 			if(p->m_CpTick != -1 && p->m_CpTick > Server()->Tick())
 			{
-				Msg.m_Check = (int)(p->m_CpDiff*100);
-				str_format(aTmp, sizeof(aTmp), "\nCheckpoint | Diff : %+5.2f", p->m_CpDiff);
+				Msg.m_Check = (int)(m_aPlayerRace[i].m_CpDiff*100);
+				str_format(aTmp, sizeof(aTmp), "\nCheckpoint | Diff : %+5.2f", m_aPlayerRace[i].m_CpDiff);
 				str_append(aBuftime, aTmp, sizeof(aBuftime));
 			}
 
@@ -174,17 +194,26 @@ void CGameControllerRACE::Tick()
 
 bool CGameControllerRACE::OnCheckpoint(int ID, int z)
 {
-	CRaceData *p = &m_aRace[ID];
-	CPlayerData *pBest = GameServer()->Score()->PlayerData(ID);
+	int GameTeam = GameServer()->m_apPlayers[ID]->GetGameTeam();
+	CRaceData *p = &m_aRace[GameTeam];
+
 	if(p->m_RaceState != RACE_STARTED)
 		return false;
 
-	p->m_aCpCurrent[z] = GetTime(ID);
+	p->m_aCpCurrent[z] = GetTime(GameTeam);
 
-	if(pBest->m_Time && pBest->m_aCpTime[z] != 0)
+	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		p->m_CpDiff = p->m_aCpCurrent[z] - pBest->m_aCpTime[z];
-		p->m_CpTick = Server()->Tick() + Server()->TickSpeed()*2;
+		if(!GameServer()->m_apPlayers[i] || GameServer()->m_apPlayers[i]->GetGameTeam() != GameTeam)
+			continue;
+
+		CPlayerData *pBest = GameServer()->Score()->PlayerData(ID);
+
+		if(pBest->m_Time && pBest->m_aCpTime[z] != 0)
+		{
+			m_aPlayerRace[i].m_CpDiff = p->m_aCpCurrent[z] - pBest->m_aCpTime[z];
+			p->m_CpTick = Server()->Tick() + Server()->TickSpeed()*2;
+		}
 	}
 
 	return true;
@@ -192,21 +221,25 @@ bool CGameControllerRACE::OnCheckpoint(int ID, int z)
 
 bool CGameControllerRACE::OnRaceStart(int ID, float StartAddTime, bool Check)
 {
-	CRaceData *p = &m_aRace[ID];
-	CCharacter *pChr = GameServer()->GetPlayerChar(ID);
-	if(Check && (pChr->HasWeapon(WEAPON_GRENADE) || pChr->Armor()) && (p->m_RaceState == RACE_FINISHED || p->m_RaceState == RACE_STARTED))
+	int GameTeam = GameServer()->m_apPlayers[ID]->GetGameTeam();
+	CRaceData *p = &m_aRace[GameTeam];
+
+	m_aPlayerRace[ID].m_State = RACE_STARTED;
+
+	if(p->m_RaceState != RACE_NONE)
 		return false;
-	
+
 	p->m_RaceState = RACE_STARTED;
 	p->m_StartTime = Server()->Tick();
 	p->m_RefreshTime = Server()->Tick();
 	p->m_StartAddTime = StartAddTime;
 
-	if(p->m_RaceState != RACE_NONE)
+	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		// reset pickups
-		if(!pChr->HasWeapon(WEAPON_GRENADE))
-			GameServer()->m_apPlayers[ID]->m_ResetPickups = true;
+		if(!GameServer()->m_apPlayers[i] || GameServer()->m_apPlayers[i]->GetGameTeam() != GameTeam)
+			continue;
+
+		m_aPlayerRace[i].m_State = (i == ID) ? RACE_STARTED : RACE_TEAM_STARTED;
 	}
 
 #if defined(CONF_TEERACE)
@@ -218,44 +251,55 @@ bool CGameControllerRACE::OnRaceStart(int ID, float StartAddTime, bool Check)
 }
 
 bool CGameControllerRACE::OnRaceEnd(int ID, float FinishTime)
-{
-	CRaceData *p = &m_aRace[ID];
-	CPlayerData *pBest = GameServer()->Score()->PlayerData(ID);
+{ 
+	int GameTeam = GameServer()->m_apPlayers[ID]->GetGameTeam();
+	CRaceData *p = &m_aRace[GameTeam];
+
 	if(p->m_RaceState != RACE_STARTED)
 		return false;
 
 	p->m_RaceState = RACE_FINISHED;
 
-	// add the time from the start
-	FinishTime += p->m_StartAddTime;
+	for(int i = 0;  i < MAX_CLIENTS; i++)
+	{
+		if(!GameServer()->m_apPlayers[i] || GameServer()->m_apPlayers[i]->GetGameTeam() != GameTeam)
+			continue;
+
+		m_aPlayerRace[i].m_State = RACE_FINISHED;
+
+		CPlayerData *pBest = GameServer()->Score()->PlayerData(i);
+
+		// add the time from the start
+		FinishTime += p->m_StartAddTime;
 	
-	GameServer()->m_apPlayers[ID]->m_Score = max(-(int)FinishTime, GameServer()->m_apPlayers[ID]->m_Score);
+		GameServer()->m_apPlayers[i]->m_Score = max(-(int)FinishTime, GameServer()->m_apPlayers[i]->m_Score);
 
-	float Improved = FinishTime - pBest->m_Time;
-	bool NewRecord = pBest->Check(FinishTime, p->m_aCpCurrent);
+		float Improved = FinishTime - pBest->m_Time;
+		bool NewRecord = pBest->Check(FinishTime, p->m_aCpCurrent);
 
-	// save the score
-	if(str_comp_num(Server()->ClientName(ID), "nameless tee", 12) != 0 && NewRecord)
-	{
-		GameServer()->Score()->SaveScore(ID);
-		if(GameServer()->Score()->CheckRecord(ID) && g_Config.m_SvShowTimes)
-			GameServer()->SendRecord(-1);
-	}
+		// save the score
+		if(str_comp_num(Server()->ClientName(i), "nameless tee", 12) != 0 && NewRecord)
+		{
+			GameServer()->Score()->SaveScore(i);
+			if(GameServer()->Score()->CheckRecord(i) && g_Config.m_SvShowTimes)
+				GameServer()->SendRecord(-1);
+		}
 
-	char aBuf[128];
-	str_format(aBuf, sizeof(aBuf), "%s finished in: %d minute(s) %6.3f second(s)", Server()->ClientName(ID), (int)FinishTime/60, fmod(FinishTime,60));
-	if(!g_Config.m_SvShowTimes)
-		GameServer()->SendChatTarget(ID, aBuf);
-	else
-		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
-
-	if(Improved < 0)
-	{
-		str_format(aBuf, sizeof(aBuf), "New record: %6.3f second(s) better", Improved);
+		char aBuf[128];
+		str_format(aBuf, sizeof(aBuf), "%s finished in: %d minute(s) %6.3f second(s)", Server()->ClientName(i), (int)FinishTime / 60, fmod(FinishTime, 60));
 		if(!g_Config.m_SvShowTimes)
-			GameServer()->SendChatTarget(ID, aBuf);
+			GameServer()->SendChatTarget(i, aBuf);
 		else
 			GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+
+		if(Improved < 0)
+		{
+			str_format(aBuf, sizeof(aBuf), "New record: %6.3f second(s) better", Improved);
+			if(!g_Config.m_SvShowTimes)
+				GameServer()->SendChatTarget(i, aBuf);
+			else
+				GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+		}
 	}
 	
 #if defined(CONF_TEERACE)	
@@ -298,5 +342,6 @@ bool CGameControllerRACE::OnRaceEnd(int ID, float FinishTime)
 
 float CGameControllerRACE::GetTime(int ID)
 {
-	return (float)(Server()->Tick()-m_aRace[ID].m_StartTime)/((float)Server()->TickSpeed());
+	return (float)(Server()->Tick()-m_aRace[GameServer()->m_apPlayers[ID]->GetGameTeam()].m_StartTime)/((float)Server()->TickSpeed());
 }
+

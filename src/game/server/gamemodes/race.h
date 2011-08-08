@@ -13,6 +13,7 @@ public:
 		RACE_NONE = 0,
 		RACE_STARTED,
 		RACE_FINISHED,
+		RACE_TEAM_STARTED,
 	};
 
 	struct CRaceData
@@ -23,8 +24,7 @@ public:
 
 		float m_aCpCurrent[25];
 		int m_CpTick;
-		float m_CpDiff;
-		
+
 		float m_StartAddTime;
 
 		void Reset()
@@ -32,12 +32,24 @@ public:
 			m_RaceState = RACE_NONE;
 			m_StartTime = -1;
 			m_RefreshTime = -1;
-			mem_zero(m_aCpCurrent, sizeof(m_aCpCurrent));
+			for(unsigned i = 0; i < sizeof(m_aCpCurrent) / sizeof(m_aCpCurrent[0]); i++)
+				m_aCpCurrent[i] = 0.0f;
 			m_CpTick = -1;
-			m_CpDiff = 0;
 			m_StartAddTime = 0.0f;
 		}
-	} m_aRace[MAX_CLIENTS];
+	} m_aRace[16];
+
+	struct CPlayerRaceData
+	{
+		int m_State;
+		float m_CpDiff;
+
+		void Reset()
+		{
+			m_State = RACE_NONE;
+			m_CpDiff = 0.0f;
+		}
+	} m_aPlayerRace[MAX_CLIENTS];
 	
 	CGameControllerRACE(class CGameContext *pGameServer);
 	~CGameControllerRACE();
