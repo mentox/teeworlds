@@ -884,6 +884,14 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					else
 						((CGameControllerHPRACE *)m_pController)->ChatCommandWith(ClientID);
 				}
+				else if(!str_comp_num(pCommand, "restart", 7) && m_pController->CanUsePartnerCommands())
+				{
+					for(int i = 0; i < MAX_CLIENTS; i++)
+					{
+						if(m_apPlayers[i]->GetGameTeam() == m_apPlayers[ClientID]->GetGameTeam())
+							m_apPlayers[i]->KillCharacter(WEAPON_GAME);
+					}
+				}
 				else
 				{
 					SendChatTarget(ClientID, "Wrong command.");
