@@ -316,10 +316,16 @@ void CCharacter::FireWeapon()
 					GameServer()->CreateHammerHit(ProjStartPos, m_pPlayer->GetCID());
 
 				vec2 Dir;
-				if (length(pTarget->m_Pos - m_Pos) > 0.0f)
-					Dir = normalize(pTarget->m_Pos - m_Pos);
+				if(!GameServer()->m_pController->IsHammerParty())
+					if (length(pTarget->m_Pos - m_Pos) > 0.0f)
+						Dir = normalize(pTarget->m_Pos - m_Pos);
+					else
+						Dir = vec2(0.f, -1.f);
 				else
-					Dir = vec2(0.f, -1.f);
+					if(length(vec2(m_LatestInput.m_TargetX, m_LatestInput.m_TargetY)))
+						Dir = normalize(vec2(m_LatestInput.m_TargetX, m_LatestInput.m_TargetY));
+					else
+						Dir = vec2(0.0f, -1.0f);
 
 				if(!GameServer()->m_pController->IsHammerParty())
 					pTarget->TakeDamage(vec2(0.f, -1.f) + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
@@ -332,7 +338,7 @@ void CCharacter::FireWeapon()
 			}
 
 			// if we Hit anything, we have to wait for the reload
-			if(Hits)
+			if(Hits && !GameServer()->m_pController->IsHammerParty())
 				m_ReloadTimer = Server()->TickSpeed()/3;
 
 		} break;
