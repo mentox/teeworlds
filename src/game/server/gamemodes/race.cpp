@@ -75,23 +75,34 @@ int CGameControllerRACE::OnCharacterDeath(class CCharacter *pVictim, class CPlay
 	int ClientID = pVictim->GetPlayer()->GetCID();
 	int GameTeam = pVictim->GetPlayer()->GetGameTeam();
 
-	m_aPlayerRace[ClientID].m_State = RACE_TEAM_STARTED;
+	if(m_aRace[GameTeam].m_RaceState == RACE_NONE)
+		m_aPlayerRace[ClientID].m_State = RACE_NONE;
+	else
+		m_aPlayerRace[ClientID].m_State = RACE_TEAM_STARTED;
 
 	bool Reset = 1;
+	bool AllDead = 1;
 
 	for(int i = 0; i < MAX_CLIENTS; i++)
 		if(GameServer()->m_apPlayers[i]->GetGameTeam() == GameTeam)
-			if(m_aPlayerRace[i].m_State != RACE_TEAM_STARTED)
-			{
+		{
+			if(GameServer()->m_apPlayers[i]->GetCharacter() && ! GameServer()->m_apPlayers[i]->GetCharacter()->IsAlive())
+				AllDead = 0;
+			if(m_aPlayerRace[i].m_State != m_aPlayerRace[ClientID].m_State)
 				Reset = 0;
+			if(!Reset && !AllDead)
 				break;
-			}
+		}
 
 	if(Reset)
 	{
 		for(int i = 0; i < MAX_CLIENTS; i++)
 			if(GameServer()->m_apPlayers[i]->GetGameTeam() == GameTeam)
 				m_aPlayerRace[i].m_State = RACE_NONE;
+	}
+
+	if(AllDead)
+	{
 		// remove projectiles if the player is dead to prevent cheating at start
 		if(g_Config.m_SvDeleteGrenadesAfterDeath)
 		{
@@ -224,7 +235,8 @@ bool CGameControllerRACE::OnRaceStart(int ID, float StartAddTime, bool Check)
 	int GameTeam = GameServer()->m_apPlayers[ID]->GetGameTeam();
 	CRaceData *p = &m_aRace[GameTeam];
 
-	m_aPlayerRace[ID].m_State = RACE_STARTED;
+	if(p->m_RaceState != RACE_FINISHED)
+		m_aPlayerRace[ID].m_State = RACE_STARTED;
 
 	if(p->m_RaceState != RACE_NONE)
 		return false;
