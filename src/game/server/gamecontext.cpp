@@ -888,7 +888,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				{
 					for(int i = 0; i < MAX_CLIENTS; i++)
 					{
-						if(m_apPlayers[i]->GetGameTeam() == m_apPlayers[ClientID]->GetGameTeam())
+						if(m_apPlayers[i] && m_apPlayers[i]->GetGameTeam() == m_apPlayers[ClientID]->GetGameTeam())
 							m_apPlayers[i]->KillCharacter(WEAPON_GAME);
 					}
 				}

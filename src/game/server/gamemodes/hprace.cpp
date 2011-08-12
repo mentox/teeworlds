@@ -118,30 +118,30 @@ void CGameControllerHPRACE::TryCreateTeam(int ClientID, int With)
 
 void CGameControllerHPRACE::ChatCommandWith(int ClientID, const char *pName)
 {
-	dbg_msg("dbg", "withcmd cid=%d name='%s'", ClientID, pName);
 	int NumMatches = 0;
 	int MatchID = -1;
-	for(int i = 0; i < MAX_CLIENTS; i++)
-	{
-		if(!GameServer()->m_apPlayers[i])
-			continue;
-		if(i == ClientID)
-			continue;
-		else if(str_comp(Server()->ClientName(i), pName) == 0)
+	if(pName)
+		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
-			NumMatches = 1;
-			MatchID = i;
-			break;
-		}
-		else if(str_find(Server()->ClientName(i), pName))
-		{
-			NumMatches++;
-			if(NumMatches == 1)
+			if(!GameServer()->m_apPlayers[i])
+				continue;
+			if(i == ClientID)
+				continue;
+			else if(str_comp(Server()->ClientName(i), pName) == 0)
+			{
+				NumMatches = 1;
 				MatchID = i;
-			else
-				MatchID = -1;
+				break;
+			}
+			else if(str_find(Server()->ClientName(i), pName))
+			{
+				NumMatches++;
+				if(NumMatches == 1)
+					MatchID = i;
+				else
+					MatchID = -1;
+			}
 		}
-	}
 
 	if(NumMatches == 1)
 		TryCreateTeam(ClientID, MatchID);

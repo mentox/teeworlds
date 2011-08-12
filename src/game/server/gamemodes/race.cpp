@@ -84,7 +84,7 @@ int CGameControllerRACE::OnCharacterDeath(class CCharacter *pVictim, class CPlay
 	bool AllDead = 1;
 
 	for(int i = 0; i < MAX_CLIENTS; i++)
-		if(GameServer()->m_apPlayers[i]->GetGameTeam() == GameTeam)
+		if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetGameTeam() == GameTeam)
 		{
 			if(GameServer()->m_apPlayers[i]->GetCharacter() && ! GameServer()->m_apPlayers[i]->GetCharacter()->IsAlive())
 				AllDead = 0;
@@ -97,7 +97,7 @@ int CGameControllerRACE::OnCharacterDeath(class CCharacter *pVictim, class CPlay
 	if(Reset)
 	{
 		for(int i = 0; i < MAX_CLIENTS; i++)
-			if(GameServer()->m_apPlayers[i]->GetGameTeam() == GameTeam)
+			if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetGameTeam() == GameTeam)
 				m_aPlayerRace[i].m_State = RACE_NONE;
 	}
 
