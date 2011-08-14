@@ -151,3 +151,27 @@ void CGameControllerHPRACE::ChatCommandWith(int ClientID, const char *pName)
 		GameServer()->SendChatTarget(ClientID, "More than one match found");
 }
 
+void CGameControllerHPRACE::OnPlayerDisconnect(CPlayer *pPlayer)
+{
+	int ClientID = pPlayer->GetCID();
+	int Team = pPlayer->GetGameTeam();
+
+	m_aPartnerWishes[ClientID] = -1;
+
+	if(Team != -1)
+	{
+		m_aRace[Team].Reset();
+		m_aPlayerRace[Team].Reset();
+
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			if(i != ClientID && GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetGameTeam() == Team)
+			{
+				GameServer()->m_apPlayers[i]->SetGameTeam(-1);
+				GameServer()->m_apPlayers[i]->SetTeam(TEAM_SPECTATORS);
+				GameServer()->SendChatTarget(i, "Your partner has left the team");
+			}
+		}
+	}
+}
+

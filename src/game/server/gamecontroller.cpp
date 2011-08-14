@@ -322,6 +322,10 @@ void IGameController::PostReset()
 	}
 }
 
+void IGameController::OnPlayerDisconnect(class CPlayer *pPlayer)
+{
+}
+
 void IGameController::OnPlayerInfoChange(class CPlayer *pP)
 {
 	const int aTeamColors[2] = {65387, 10223467};

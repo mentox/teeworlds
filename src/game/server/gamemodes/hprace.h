@@ -23,5 +23,7 @@ public:
 
 	virtual int GetAutoTeam(int ClientID);
 	virtual int GetAutoGameTeam(int ClientID);
+
+	virtual void OnPlayerDisconnect(CPlayer *pPlayer);
 };
 

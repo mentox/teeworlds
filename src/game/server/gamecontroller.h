@@ -132,6 +132,8 @@ public:
 	*/
 	virtual int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon);
 
+	virtual void OnPlayerDisconnect(class CPlayer *pPlayer);
+
 
 	virtual void OnPlayerInfoChange(class CPlayer *pP);
 

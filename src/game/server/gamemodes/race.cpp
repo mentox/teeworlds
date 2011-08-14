@@ -24,6 +24,7 @@ CGameControllerRACE::CGameControllerRACE(class CGameContext *pGameServer) : IGam
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
 		m_aRace[i].Reset();
+		m_aPlayerRace[i].Reset();
 #if defined(CONF_TEERACE)
 		m_aStopRecordTick[i] = -1;
 #endif
@@ -176,10 +177,8 @@ void CGameControllerRACE::Tick()
 				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
 			else
 				GameServer()->SendBroadcast(aBuftime, i);
-
-			p->m_RefreshTime = Server()->Tick();
 		}
-		
+
 #if defined(CONF_TEERACE)
 		// stop recording at the finish
 		CPlayerData *pBest = GameServer()->Score()->PlayerData(i);
@@ -201,6 +200,13 @@ void CGameControllerRACE::Tick()
 			Server()->StopGhostRecord(i);
 #endif
 	}
+
+	for(int i = 0; i < 16; i++)
+	{
+		if(Server()->Tick()-m_aRace[i].m_RefreshTime >= Server()->TickSpeed())
+			m_aRace[i].m_RefreshTime = Server()->Tick();
+	}
+		
 }
 
 bool CGameControllerRACE::OnCheckpoint(int ID, int z)
