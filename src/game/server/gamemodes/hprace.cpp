@@ -151,27 +151,38 @@ void CGameControllerHPRACE::ChatCommandWith(int ClientID, const char *pName)
 		GameServer()->SendChatTarget(ClientID, "More than one match found");
 }
 
-void CGameControllerHPRACE::OnPlayerDisconnect(CPlayer *pPlayer)
+void CGameControllerHPRACE::ChatCommandLeaveTeam(int ClientID)
 {
-	int ClientID = pPlayer->GetCID();
-	int Team = pPlayer->GetGameTeam();
+	LeaveTeam(ClientID);
+}
 
-	m_aPartnerWishes[ClientID] = -1;
-
+void CGameControllerHPRACE::LeaveTeam(int ClientID, bool Disconnect)
+{
+	int Team = GameServer()->m_apPlayers[ClientID]->GetGameTeam();
 	if(Team != -1)
 	{
 		m_aRace[Team].Reset();
-		m_aPlayerRace[Team].Reset();
+		m_aPlayerRace[ClientID].Reset();
 
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
-			if(i != ClientID && GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetGameTeam() == Team)
+			if((!Disconnect || i != ClientID) && GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetGameTeam() == Team)
 			{
+				m_aPlayerRace[ClientID].Reset();
+				if(i != ClientID)
+					GameServer()->SendChatTarget(i, "Your partner has left the team");
 				GameServer()->m_apPlayers[i]->SetGameTeam(-1);
 				GameServer()->m_apPlayers[i]->SetTeam(TEAM_SPECTATORS);
-				GameServer()->SendChatTarget(i, "Your partner has left the team");
 			}
 		}
 	}
+}
+
+void CGameControllerHPRACE::OnPlayerDisconnect(CPlayer *pPlayer)
+{
+	int ClientID = pPlayer->GetCID();
+
+	m_aPartnerWishes[ClientID] = -1;
+	LeaveTeam(ClientID, true);
 }
 

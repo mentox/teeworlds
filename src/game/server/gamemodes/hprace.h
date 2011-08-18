@@ -17,7 +17,10 @@ public:
 	virtual bool CanUsePartnerCommands() const { return true; }
 
 	virtual void ChatCommandWith(int ClientID, const char *pName = 0);
+	virtual void ChatCommandLeaveTeam(int ClientID);
+
 	virtual void TryCreateTeam(int ClientID, int With);
+	virtual void LeaveTeam(int ClientID, bool Disconnect = false);
 
 	virtual int GetEmptyTeam();
 

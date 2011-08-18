@@ -872,7 +872,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 	#endif
 					SendChatTarget(ClientID, "\"/show_others\" show other players?");
 				}
-				else if(!str_comp_num(pCommand, "with", 4) && m_pController->CanUsePartnerCommands())
+				else if((!str_comp_num(pCommand, "with ", 5) || !str_comp(pCommand, "with")) && m_pController->CanUsePartnerCommands())
 				{
 					if((unsigned) str_length(pCommand) > sizeof("with "))
 					{
@@ -884,6 +884,10 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					}
 					else
 						((CGameControllerHPRACE *)m_pController)->ChatCommandWith(ClientID);
+				}
+				else if(!str_comp(pCommand, "without") && m_pController->CanUsePartnerCommands())
+				{
+					((CGameControllerHPRACE *)m_pController)->ChatCommandLeaveTeam(ClientID);
 				}
 				else if(!str_comp_num(pCommand, "restart", 7) && m_pController->CanUsePartnerCommands())
 				{
