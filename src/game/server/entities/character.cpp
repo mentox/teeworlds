@@ -791,7 +791,7 @@ void CCharacter::TickDefered()
 	}
 
 	int Events = m_Core.m_TriggeredEvents;
-	int Mask = GameServer()->PlayermaskAllExceptOneTeam(m_pPlayer->GetCID(), m_Team);
+	int Mask = GameServer()->PlayermaskAllExceptOneTeam(m_pPlayer->GetCID());
 
 	if(Events&COREEVENT_GROUND_JUMP) GameServer()->CreateSound(m_Pos, SOUND_PLAYER_JUMP, Mask);
 

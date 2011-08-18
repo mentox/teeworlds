@@ -204,7 +204,7 @@ public:
 
 	int PlayermaskAllTeam(int Team);
 	int PlayermaskOne(int ClientID) { return CmaskOne(ClientID); }
-	int PlayermaskAllExceptOneTeam(int ClientID, int Team) { return CmaskAllExceptOne(ClientID) & PlayermaskAllTeam(ClientID); }
+	int PlayermaskAllExceptOneTeam(int ClientID) { return CmaskAllExceptOne(ClientID) & PlayermaskAllTeam(ClientID); }
 };
 
 #endif
