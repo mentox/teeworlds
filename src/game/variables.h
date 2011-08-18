@@ -126,7 +126,7 @@ MACRO_CONFIG_INT(SvShowOthers, sv_show_others, 1, 0, 1, CFGFLAG_SERVER, "Shows t
 MACRO_CONFIG_STR(SvScoreFolder, sv_score_folder, 32, "records", CFGFLAG_SERVER, "Folder to save score files to")
 
 /* hprace - server */
-MACRO_CONFIG_INT(SvHammerPartyPower, sv_hammer_party_power, 1, 1, 1000, CFGFLAG_SERVER, "Sets the hammer power for hprace")
+MACRO_CONFIG_INT(SvHammerPartyPower, sv_hammer_party_power, 100, 0, 1000, CFGFLAG_SERVER, "Sets the hammer power for hprace")
 
 /* SQL */
 #if defined(CONF_SQL)

@@ -331,7 +331,7 @@ void CCharacter::FireWeapon()
 					pTarget->TakeDamage(vec2(0.f, -1.f) + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
 						m_pPlayer->GetCID(), m_ActiveWeapon);
 				else
-					pTarget->TakeDamage(Dir * 10.0f * g_Config.m_SvHammerPartyPower, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
+					pTarget->TakeDamage(Dir * 0.1f * g_Config.m_SvHammerPartyPower, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
 						m_pPlayer->GetCID(), m_ActiveWeapon);
 
 				Hits++;
