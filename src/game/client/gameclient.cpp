@@ -980,8 +980,6 @@ void CGameClient::OnNewSnapshot()
 	}
 
 	CTuningParams StandardTuning;
-	StandardTuning.m_PlayerCollision = 1;
-	StandardTuning.m_PlayerHooking = 1;
 	CServerInfo CurrentServerInfo;
 	Client()->GetServerInfo(&CurrentServerInfo);
 	if(CurrentServerInfo.m_aGameType[0] != '0')
