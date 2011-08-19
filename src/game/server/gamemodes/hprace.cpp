@@ -1,4 +1,6 @@
 
+#include <game/server/gamecontext.h>
+
 #include "hprace.h"
 
 CGameControllerHPRACE::CGameControllerHPRACE(class CGameContext *pGameServer)
