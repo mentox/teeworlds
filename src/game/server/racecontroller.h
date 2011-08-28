@@ -4,7 +4,7 @@
 
 #include "gamecontroller.h"
 
-class CRaceController : public IGameController
+class IRaceController : public IGameController
 {
 public:
 	enum
@@ -15,6 +15,7 @@ public:
 		RACE_TEAM_STARTED,
 	};
 
+public: // TODO: fix this
 	struct CRaceData
 	{
 		int m_RaceState;
@@ -38,6 +39,7 @@ public:
 		}
 	} m_aRace[MAX_TEAMS];
 
+protected:
 	struct CPlayerRaceData
 	{
 		int m_State;
@@ -50,8 +52,18 @@ public:
 		}
 	} m_aPlayerRace[MAX_CLIENTS];
 
-	CRaceController(class CGameContext *pGameServer);
-	~CRaceController();
+	int m_aPartnerWishes[MAX_CLIENTS];
+
+public:
+
+	IRaceController(class CGameContext *pGameServer);
+	~IRaceController();
+
+	bool IsRaceController() const { return true; }
+	virtual bool IsFastCap() const { return false; }
+
+	virtual bool IsHammerParty() const { return false; }
+	virtual bool CanUsePartnerCommands() const { return false; }
 
 	virtual bool FakeCollisionTune() const { return true; }
 	virtual bool FakeHookTune() const { return true; }
@@ -66,15 +78,27 @@ public:
 
 	virtual void DoWincheck();
 	virtual void Tick();
-	virtual int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon);
 
+	virtual int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon);
 	virtual bool OnCheckpoint(int ID, int z);
 	virtual bool OnRaceStart(int ID, float StartAddTime, bool Check=true);
 	virtual bool OnRaceEnd(int ID, float FinishTime);
+	virtual void OnPlayerDisconnect(class CPlayer *pPlayer);
 
 	virtual int GetAutoGameTeam(int ClientID);
+	virtual int GetAutoTeam(int ClientID);
 
 	float GetTime(int ID);
+
+	virtual void ChatCommandWith(int ClientID, const char *pName = 0);
+	virtual void ChatCommandLeaveTeam(int ClientID);
+
+	virtual void TryCreateTeam(int ClientID, int With);
+	virtual void LeaveTeam(int ClientID, bool Disconnect = false);
+
+	virtual int GetEmptyTeam();
+
+	virtual bool CanJoinTeam(int Team, int ClientID);
 };
 
 #endif

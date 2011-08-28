@@ -3,7 +3,7 @@
 #include <game/server/gamecontext.h>
 
 CGameControllerRACE::CGameControllerRACE(CGameContext *pGameContext)
-	: CRaceController(pGameContext)
+	: IRaceController(pGameContext)
 {
 	m_pGameType = "Race";
 }

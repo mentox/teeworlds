@@ -8,7 +8,7 @@
 #include "fastcap.h"
 
 CGameControllerFC::CGameControllerFC(class CGameContext *pGameServer)
-: CGameControllerRACE(pGameServer)
+: IRaceController(pGameServer)
 {
 	m_apFlags[0] = 0;
 	m_apFlags[1] = 0;
@@ -69,7 +69,7 @@ int CGameControllerFC::OnCharacterDeath(class CCharacter *pVictim, class CPlayer
 		m_apPlFlags[ID] = 0;
 	}
 
-	return CGameControllerRACE::OnCharacterDeath(pVictim, pKiller, Weapon);
+	return IRaceController::OnCharacterDeath(pVictim, pKiller, Weapon);
 }
 
 void CGameControllerFC::OnCharacterSpawn(class CCharacter *pChr)
@@ -128,7 +128,7 @@ bool CGameControllerFC::OnRaceStart(int ID, float StartAddTime, bool Check)
 	if(p->m_RaceState == RACE_STARTED)
 		return false;
 	
-	CGameControllerRACE::OnRaceStart(ID, StartAddTime, false);
+	IRaceController::OnRaceStart(ID, StartAddTime, false);
 	
 	m_apPlFlags[ID] = new CFlag(&GameServer()->m_World, GameServer()->m_apPlayers[ID]->GetTeam()^1, GameServer()->GetPlayerChar(ID)->m_Pos, GameServer()->GetPlayerChar(ID));
 	GameServer()->CreateSoundGlobal(SOUND_CTF_GRAB_EN, ID);
@@ -138,7 +138,7 @@ bool CGameControllerFC::OnRaceStart(int ID, float StartAddTime, bool Check)
 
 bool CGameControllerFC::OnRaceEnd(int ID, float FinishTime)
 {
-	if(!CGameControllerRACE::OnRaceEnd(ID, FinishTime))
+	if(!IRaceController::OnRaceEnd(ID, FinishTime))
 		return false;
 
 	if(m_apPlFlags[ID])

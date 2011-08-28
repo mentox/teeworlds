@@ -11,7 +11,7 @@
 #include <game/voting.h>
 
 #include "eventhandler.h"
-#include "gamecontroller.h"
+#include "racecontroller.h"
 #include "gameworld.h"
 #include "player.h"
 
@@ -96,7 +96,7 @@ public:
 #if defined(CONF_TEERACE)
 	class CServerWebapp *Webapp() { return m_pWebapp; }
 #endif
-	class CGameControllerRACE *RaceController() { return (CGameControllerRACE*)m_pController; }
+	class IRaceController *RaceController() { return (IRaceController*)m_pController; }
 	
 	CGameContext();
 	~CGameContext();

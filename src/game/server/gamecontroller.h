@@ -68,10 +68,7 @@ public:
 
 	bool IsTeamplay() const;
 
-	virtual bool IsHammerParty() const { return false; }
-	virtual bool FakeCollisionTune() const { return false; }
-	virtual bool FakeHookTune() const { return false; }
-	virtual bool CanUsePartnerCommands() const { return false; }
+	virtual bool IsRaceController() const { return false; }
 
 	IGameController(class CGameContext *pGameServer);
 	virtual ~IGameController();
@@ -153,9 +150,6 @@ public:
 	virtual int GetAutoGameTeam(int ClientID);
 
 	virtual void PostReset();
-	
-	// fast cap
-	virtual bool IsFastCap() { return false; }
 };
 
 #endif

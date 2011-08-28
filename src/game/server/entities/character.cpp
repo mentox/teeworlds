@@ -316,7 +316,7 @@ void CCharacter::FireWeapon()
 					GameServer()->CreateHammerHit(ProjStartPos, m_pPlayer->GetCID());
 
 				vec2 Dir;
-				if(!GameServer()->m_pController->IsHammerParty())
+				if(!GameServer()->RaceController()->IsHammerParty())
 					if (length(pTarget->m_Pos - m_Pos) > 0.0f)
 						Dir = normalize(pTarget->m_Pos - m_Pos);
 					else
@@ -327,7 +327,7 @@ void CCharacter::FireWeapon()
 					else
 						Dir = vec2(0.0f, -1.0f);
 
-				if(!GameServer()->m_pController->IsHammerParty())
+				if(!GameServer()->RaceController()->IsHammerParty())
 					pTarget->TakeDamage(vec2(0.f, -1.f) + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
 						m_pPlayer->GetCID(), m_ActiveWeapon);
 				else
@@ -338,7 +338,7 @@ void CCharacter::FireWeapon()
 			}
 
 			// if we Hit anything, we have to wait for the reload
-			if(Hits && !GameServer()->m_pController->IsHammerParty())
+			if(Hits && !GameServer()->RaceController()->IsHammerParty())
 				m_ReloadTimer = Server()->TickSpeed()/3;
 
 		} break;
@@ -603,7 +603,7 @@ void CCharacter::Tick()
 	m_Core.Tick(true);
 
 	// race
-	CGameControllerRACE *pRace = GameServer()->RaceController();
+	IRaceController *pRace = GameServer()->RaceController();
 	CGameControllerFC *pFC = (CGameControllerFC*)GameServer()->m_pController;
 	
 	if(g_Config.m_SvRegen > 0 && (Server()->Tick()%g_Config.m_SvRegen) == 0)
@@ -624,13 +624,13 @@ void CCharacter::Tick()
 	}
 	
 	if(GameServer()->Collision()->GetCollisionRace(TileIndex) == TILE_BEGIN
-		|| (GameServer()->m_pController->IsFastCap() && pFC->IsEnemyFlagStand(m_Pos, m_pPlayer->GetTeam())))
+		|| (GameServer()->RaceController()->IsFastCap() && pFC->IsEnemyFlagStand(m_Pos, m_pPlayer->GetTeam())))
 	{
 		pRace->OnRaceStart(m_pPlayer->GetCID(), CalculateStartAddTime(m_PrevPos, m_Pos));
 	}
 	
 	else if(GameServer()->Collision()->GetCollisionRace(TileIndex) == TILE_END
-		|| (GameServer()->m_pController->IsFastCap() && pFC->IsOwnFlagStand(m_Pos, m_pPlayer->GetTeam())))
+		|| (GameServer()->RaceController()->IsFastCap() && pFC->IsOwnFlagStand(m_Pos, m_pPlayer->GetTeam())))
 	{
 		float FinishTime = CalculateFinishTime(pRace->GetTime(m_pPlayer->GetCID()), m_PrevPos, m_Pos);
 		pRace->OnRaceEnd(m_pPlayer->GetCID(), FinishTime);
@@ -852,7 +852,7 @@ float CCharacter::CalculateFinishTime(float Time, vec2 PrevPos, vec2 Pos)
 		float a = i/(float)Num;
 		vec2 TmpPos = mix(PrevPos, Pos, a);
 		if(GameServer()->Collision()->GetCollisionRace(GameServer()->Collision()->GetIndex(TmpPos)) == TILE_END || 
-			(GameServer()->m_pController->IsFastCap() && ((CGameControllerFC*)GameServer()->m_pController)->IsOwnFlagStand(TmpPos, m_pPlayer->GetTeam())))
+			(GameServer()->RaceController()->IsFastCap() && ((CGameControllerFC*)GameServer()->m_pController)->IsOwnFlagStand(TmpPos, m_pPlayer->GetTeam())))
 			return (Time-1.0f/Server()->TickSpeed()) + (float)i/1000.f;
 	}
 	
@@ -867,7 +867,7 @@ float CCharacter::CalculateStartAddTime(vec2 PrevPos, vec2 Pos)
 		float a = i/(float)Num;
 		vec2 TmpPos = mix(Pos, PrevPos, a);
 		if(GameServer()->Collision()->GetCollisionRace(GameServer()->Collision()->GetIndex(TmpPos)) == TILE_BEGIN || 
-			(GameServer()->m_pController->IsFastCap() && ((CGameControllerFC*)GameServer()->m_pController)->IsEnemyFlagStand(TmpPos, m_pPlayer->GetTeam())))
+			(GameServer()->RaceController()->IsFastCap() && ((CGameControllerFC*)GameServer()->m_pController)->IsEnemyFlagStand(TmpPos, m_pPlayer->GetTeam())))
 			return (float)i/1000.f;
 	}
 	

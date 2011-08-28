@@ -4,7 +4,7 @@
 
 #include <game/server/racecontroller.h>
 
-class CGameControllerRACE : public CRaceController
+class CGameControllerRACE : public IRaceController
 {
 public:
 	CGameControllerRACE(class CGameContext *pGameContext);
