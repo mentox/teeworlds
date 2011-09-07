@@ -449,6 +449,8 @@ void IRaceController::TryCreateTeam(int ClientID, int With)
 		m_aPartnerWishes[With] = -1;
 		GameServer()->m_apPlayers[ClientID]->SetTeam(TEAM_RED);
 		GameServer()->m_apPlayers[With]->SetTeam(TEAM_RED);
+		GameServer()->m_apPlayers[ClientID]->m_ShowOthers = 0;
+		GameServer()->m_apPlayers[With]->m_ShowOthers = 0;
 
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
@@ -520,6 +522,7 @@ void IRaceController::LeaveTeam(int ClientID, bool Disconnect)
 					GameServer()->SendChatTarget(i, "Your partner has left the team");
 				GameServer()->m_apPlayers[i]->SetGameTeam(-1);
 				GameServer()->m_apPlayers[i]->SetTeam(TEAM_SPECTATORS);
+				GameServer()->m_apPlayers[i]->m_ShowOthers = 1;
 			}
 		}
 	}

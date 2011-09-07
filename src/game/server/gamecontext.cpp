@@ -847,7 +847,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					SendChatTarget(ClientID, "-------------------------------");
 				}
 	#endif
-				else if(!str_comp(pCommand, "show_others"))
+				else if(!str_comp(pCommand, "show_others")&&!m_pController->IsHammerParty())
 				{
 					if(!g_Config.m_SvShowOthers && !Server()->IsAuthed(ClientID))
 					{
@@ -1317,7 +1317,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			}
 		}
 	}
-	else if (MsgID == NETMSGTYPE_CL_RACESHOWOTHERS)
+	else if (MsgID == NETMSGTYPE_CL_RACESHOWOTHERS && !m_pController->IsHammerParty())
 	{
 		if(!g_Config.m_SvShowOthers && !Server()->IsAuthed(ClientID))
 			return;
