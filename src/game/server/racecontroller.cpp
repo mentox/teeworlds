@@ -477,6 +477,12 @@ void IRaceController::ChatCommandWith(int ClientID, const char *pName)
 				continue;
 			if(i == ClientID)
 				continue;
+			else if(str_comp(Server()->ClientName(i), pName) == 0)
+			{
+				NumMatches = 1;
+				MatchID = i;
+				break;
+			}
 			else if(str_find_nocase(Server()->ClientName(i), pName))
 			{
 				NumMatches++;
