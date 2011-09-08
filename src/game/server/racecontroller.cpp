@@ -470,27 +470,20 @@ void IRaceController::ChatCommandWith(int ClientID, const char *pName)
 	int NumMatches = 0;
 	int MatchID = -1;
 	if(pName)
+	{
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
 			if(!GameServer()->m_apPlayers[i])
 				continue;
 			if(i == ClientID)
 				continue;
-			else if(str_comp(Server()->ClientName(i), pName) == 0)
-			{
-				NumMatches = 1;
-				MatchID = i;
-				break;
-			}
-			else if(str_find(Server()->ClientName(i), pName))
+			else if(str_find_nocase(Server()->ClientName(i), pName))
 			{
 				NumMatches++;
-				if(NumMatches == 1)
-					MatchID = i;
-				else
-					MatchID = -1;
+				MatchID = i;
 			}
 		}
+	}
 
 	if(NumMatches == 1)
 		TryCreateTeam(ClientID, MatchID);
