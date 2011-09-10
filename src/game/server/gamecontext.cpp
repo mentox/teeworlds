@@ -876,7 +876,10 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				{
 					if((unsigned) str_length(pCommand) > sizeof("with "))
 					{
-						const char *aName = pCommand+5;
+						char aName[64];
+						str_copy(aName, pCommand + 5, sizeof(aName));
+						while(aName[str_length(aName) - 1] == ' ')
+							aName[str_length(aName) - 1] = 0
 						((CGameControllerHPRACE *)m_pController)->ChatCommandWith(ClientID, aName);
 					}
 					else
