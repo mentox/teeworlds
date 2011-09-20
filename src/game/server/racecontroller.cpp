@@ -424,7 +424,7 @@ void IRaceController::TryCreateTeam(int ClientID, int With)
 		return;
 	}
 
-	if(GameServer()->m_apPlayers[ClientID]->GetGameTeam() != -1)
+	if(GameServer()->m_apPlayers[With]->GetGameTeam() != -1)
 	{
 		GameServer()->SendChatTarget(ClientID, "Your desired partner already has another partner");
 		return;
@@ -474,8 +474,6 @@ void IRaceController::ChatCommandWith(int ClientID, const char *pName)
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
 			if(!GameServer()->m_apPlayers[i])
-				continue;
-			if(i == ClientID)
 				continue;
 			else if(str_comp(Server()->ClientName(i), pName) == 0)
 			{
