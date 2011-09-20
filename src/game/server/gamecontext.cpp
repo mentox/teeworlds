@@ -309,8 +309,12 @@ void CGameContext::SendBroadcast(const char *pText, int ClientID)
 
 void CGameContext::SendRecord(int ClientID)
 {
+	char aBuf[16];
+	str_format(aBuf, sizeof(aBuf), "%.0f", Score()->GetRecord()->m_Time*1000.0f); // damn ugly but the only way i know to do it
+	int TimeToSend;
+	sscanf(aBuf, "%d", &TimeToSend);
 	CNetMsg_Sv_Record Msg;
-	Msg.m_Time = (Score()->GetRecord()->m_Time * 100000. + 9.0) / 10.0;
+	Msg.m_Time = TimeToSend;
 
 	if(ClientID == -1)
 	{
@@ -627,6 +631,8 @@ void CGameContext::OnClientConnected(int ClientID)
 	const int StartGameTeam = m_pController->GetAutoGameTeam(ClientID);
 
 	m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, StartTeam, StartGameTeam);
+	if(RaceController()->IsHammerParty())
+		m_apPlayers[ClientID]->m_HpTeamColor=1;
 	//players[client_id].init(client_id);
 	//players[client_id].client_id = client_id;
 
@@ -847,7 +853,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					SendChatTarget(ClientID, "-------------------------------");
 				}
 	#endif
-				else if(!str_comp(pCommand, "show_others")&&!m_pController->IsHammerParty())
+				else if(!str_comp(pCommand, "show_others")&&!RaceController()->IsHammerParty())
 				{
 					if(!g_Config.m_SvShowOthers && !Server()->IsAuthed(ClientID))
 					{
@@ -871,6 +877,15 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					SendChatTarget(ClientID, "\"/mapinfo\" shows infos about the map");
 	#endif
 					SendChatTarget(ClientID, "\"/show_others\" show other players?");
+					SendChatTarget(ClientID, "\"/help\" How to get a partner");
+				}
+				else if(!str_comp(pCommand, "help"))
+				{
+					SendChatTarget(ClientID, "--- How to get a partner ---");
+					SendChatTarget(ClientID, "- type /with partofnameyouwant");
+					SendChatTarget(ClientID, "- example :");
+					SendChatTarget(ClientID, "- /with lord will send a msg to a player with 'lord' in his name.");
+					SendChatTarget(ClientID, "----------------------------");
 				}
 				else if((!str_comp_num(pCommand, "with ", 5) || !str_comp(pCommand, "with")) && RaceController()->CanUsePartnerCommands())
 				{
@@ -879,7 +894,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 						char aName[64];
 						str_copy(aName, pCommand + 5, sizeof(aName));
 						while(aName[str_length(aName) - 1] == ' ')
-							aName[str_length(aName) - 1] = 0
+							aName[str_length(aName) - 1] = 0;
 						((CGameControllerHPRACE *)m_pController)->ChatCommandWith(ClientID, aName);
 					}
 					else
@@ -1114,6 +1129,12 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			else
 				SendBroadcast("Teams must be balanced, please join other team", ClientID);
 		}
+		else if(RaceController()->IsHammerParty())
+		{
+			char aBuf[128];
+			str_format(aBuf, sizeof(aBuf), "You need a Partner to join the game. For help write /help.");
+			SendBroadcast(aBuf, ClientID);
+		}
 		else
 		{
 			char aBuf[128];
@@ -1317,7 +1338,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			}
 		}
 	}
-	else if (MsgID == NETMSGTYPE_CL_RACESHOWOTHERS && !m_pController->IsHammerParty())
+	else if (MsgID == NETMSGTYPE_CL_RACESHOWOTHERS && !RaceController()->IsHammerParty())
 	{
 		if(!g_Config.m_SvShowOthers && !Server()->IsAuthed(ClientID))
 			return;

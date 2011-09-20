@@ -158,13 +158,18 @@ void CPlayer::Snap(int SnappingClient)
 	if(!pClientInfo)
 		return;
 
+	int color;
+
+	if(m_HpTeamColor)
+		color = GetHPTeamColor();
+
 	StrToInts(&pClientInfo->m_Name0, 4, Server()->ClientName(m_ClientID));
 	StrToInts(&pClientInfo->m_Clan0, 3, Server()->ClientClan(m_ClientID));
 	pClientInfo->m_Country = Server()->ClientCountry(m_ClientID);
 	StrToInts(&pClientInfo->m_Skin0, 6, m_TeeInfos.m_SkinName);
-	pClientInfo->m_UseCustomColor = m_TeeInfos.m_UseCustomColor;
-	pClientInfo->m_ColorBody = m_TeeInfos.m_ColorBody;
-	pClientInfo->m_ColorFeet = m_TeeInfos.m_ColorFeet;
+	pClientInfo->m_UseCustomColor = m_HpTeamColor?1:m_TeeInfos.m_UseCustomColor;
+	pClientInfo->m_ColorBody = m_HpTeamColor?color:m_TeeInfos.m_ColorBody;
+	pClientInfo->m_ColorFeet = m_HpTeamColor?color:m_TeeInfos.m_ColorFeet;
 
 	CNetObj_PlayerInfo *pPlayerInfo = static_cast<CNetObj_PlayerInfo *>(Server()->SnapNewItem(NETOBJTYPE_PLAYERINFO, m_ClientID, sizeof(CNetObj_PlayerInfo)));
 	if(!pPlayerInfo)
@@ -335,4 +340,29 @@ void CPlayer::TryRespawn()
 	m_pCharacter = new(m_ClientID) CCharacter(&GameServer()->m_World, m_GameTeam);
 	m_pCharacter->Spawn(this, SpawnPos);
 	GameServer()->CreatePlayerSpawn(SpawnPos, m_ClientID);
+}
+
+int CPlayer::GetHPTeamColor()
+{
+	switch(m_GameTeam)
+	{
+		case 0:
+		return 16776990;
+		case 2:
+		return 2359089;
+		case 1:
+		return 1113860;
+		case 4:
+		return 4521776;
+		case 3:
+		return 8322816;
+		case 6:
+		return 11057664;
+		case 5:
+		return 12836395;
+		case 7:
+		return 15073024;
+		default:
+		return 16777215;
+	}
 }

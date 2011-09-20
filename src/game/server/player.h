@@ -18,6 +18,7 @@ public:
 
 	void Init(int CID);
 
+	int GetHPTeamColor();
 	void TryRespawn();
 	void Respawn();
 	void SetTeam(int Team);
@@ -105,6 +106,8 @@ public:
 	bool m_ShowOthers;
 	
 	bool m_IsUsingRaceClient;
+
+	int m_HpTeamColor;
 
 #if defined(CONF_TEERACE)
 	int m_GlobalRank;
