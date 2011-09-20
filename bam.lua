@@ -271,7 +271,7 @@ function build(settings)
 		server_exe = Link(server_settings, "teeworlds_srv", engine, server,
 			game_shared, game_server, zlib, server_link_other, json)--, encrypt)
 	else
-		server_exe = Link(server_settings, "teeworlds_srv", engine, server,
+		server_exe = Link(server_settings, "teeworlds_hpracesrv", engine, server,
 			game_shared, game_server, zlib, server_link_other)
 	end
 
