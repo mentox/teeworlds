@@ -299,7 +299,7 @@ void CCharacter::FireWeapon()
 
 			CCharacter *apEnts[MAX_CLIENTS];
 			int Hits = 0;
-			int Num = GameServer()->m_World.FindEntities(ProjStartPos, m_ProximityRadius, (CEntity**)apEnts,
+			int Num = GameServer()->m_World.FindEntities(ProjStartPos, m_ProximityRadius*0.75f, (CEntity**)apEnts,
 														MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, m_Team);
 
 			for (int i = 0; i < Num; ++i)
