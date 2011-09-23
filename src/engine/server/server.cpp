@@ -17,6 +17,8 @@
 #include <engine/shared/config.h>
 #include <engine/shared/datafile.h>
 #include <engine/shared/demo.h>
+#include <engine/shared/econ.h>
+#include <engine/shared/filecollection.h>
 #include <engine/shared/mapchecker.h>
 #include <engine/shared/network.h>
 #include <engine/shared/packer.h>
@@ -703,9 +705,9 @@ void CServer::SendRconLineAuthed(const char *pLine, void *pUser)
 void CServer::SendRconCmdAdd(const IConsole::CCommandInfo *pCommandInfo, int ClientID)
 {
 	CMsgPacker Msg(NETMSG_RCON_CMD_ADD);
-	Msg.AddString(pCommandInfo->m_pName, 32);
-	Msg.AddString(pCommandInfo->m_pHelp, 64);
-	Msg.AddString(pCommandInfo->m_pParams, 16);
+	Msg.AddString(pCommandInfo->m_pName, IConsole::TEMPCMD_NAME_LENGTH);
+	Msg.AddString(pCommandInfo->m_pHelp, IConsole::TEMPCMD_HELP_LENGTH);
+	Msg.AddString(pCommandInfo->m_pParams, IConsole::TEMPCMD_PARAMS_LENGTH);
 	SendMsgEx(&Msg, MSGFLAG_VITAL, ClientID, true);
 }
 
@@ -719,7 +721,7 @@ void CServer::SendRconCmdRem(const IConsole::CCommandInfo *pCommandInfo, int Cli
 void CServer::UpdateClientRconCommands()
 {
 	int ClientID = Tick() % MAX_CLIENTS;
-		
+
 	if(m_aClients[ClientID].m_State != CClient::STATE_EMPTY && m_aClients[ClientID].m_Authed)
 	{
 		int ConsoleAccessLevel = m_aClients[ClientID].m_Authed == AUTHED_ADMIN ? IConsole::ACCESS_LEVEL_ADMIN : IConsole::ACCESS_LEVEL_MOD;
@@ -934,7 +936,10 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				if(str_comp_num(pPw, "teerace:", 8) == 0)
 				{
 #if defined(CONF_TEERACE)
-					GameServer()->OnTeeraceAuth(ClientID, pPw, Unpacker);
+					int SendRconCmds = Unpacker.GetInt();
+					if(Unpacker.Error() != 0)
+						SendRconCmds = 0;
+					GameServer()->OnTeeraceAuth(ClientID, pPw, SendRconCmds);
 #endif
 					return;
 				}
@@ -1156,6 +1161,8 @@ void CServer::PumpNetwork()
 		else
 			ProcessClientPacket(&Packet);
 	}
+
+	m_Econ.Update();
 }
 
 #if defined(CONF_TEERACE)
@@ -1233,7 +1240,7 @@ void CServer::GhostAddInfo(int ClientID, IGhostRecorder::CGhostCharacter *pPlaye
 	m_aGhostRecorder[ClientID].AddInfos(pPlayer);
 }
 
-void CServer::StaffAuth(int ClientID, class CUnpacker Unpacker)
+void CServer::StaffAuth(int ClientID, int SendRconCmds)
 {
 	CMsgPacker Msg(NETMSG_RCON_AUTH_STATUS);
 	Msg.AddInt(1);	//authed
@@ -1241,8 +1248,7 @@ void CServer::StaffAuth(int ClientID, class CUnpacker Unpacker)
 	SendMsgEx(&Msg, MSGFLAG_VITAL, ClientID, true);
 
 	m_aClients[ClientID].m_Authed = AUTHED_ADMIN;
-	int SendRconCmds = Unpacker.GetInt();
-	if(Unpacker.Error() == 0 && SendRconCmds)
+	if(SendRconCmds)
 		m_aClients[ClientID].m_pRconCmdToSend = Console()->FirstCommandInfo(IConsole::ACCESS_LEVEL_ADMIN, CFGFLAG_SERVER);
 	SendRconLine(ClientID, "Teerace staff authentication successful. Remote console access granted.");
 	char aBuf[128];
@@ -1320,7 +1326,7 @@ int CServer::LoadMap(const char *pMapName)
 	str_copy(m_aCurrentMap, pMapName, sizeof(m_aCurrentMap));
 	//map_set(df);
 
-	// load compelate map into memory for download
+	// load complete map into memory for download
 	{
 		IOHANDLE File = Storage()->OpenFile(aBuf, IOFLAG_READ, IStorage::TYPE_ALL);
 		m_CurrentMapSize = (int)io_length(File);
@@ -1345,7 +1351,7 @@ int CServer::Run()
 	m_pStorage = Kernel()->RequestInterface<IStorage>();
 
 	//
-	Console()->RegisterPrintCallback(SendRconLineAuthed, this);
+	m_PrintCBIndex = Console()->RegisterPrintCallback(g_Config.m_ConsoleOutputLevel, SendRconLineAuthed, this);
 
 	// load map
 	if(!LoadMap(g_Config.m_SvMap))
@@ -1368,7 +1374,6 @@ int CServer::Run()
 		BindAddr.port = g_Config.m_SvPort;
 	}
 
-
 	if(!m_NetServer.Open(BindAddr, g_Config.m_SvMaxClients, g_Config.m_SvMaxClientsPerIP, 0))
 	{
 		dbg_msg("server", "couldn't open socket. port might already be in use");
@@ -1376,6 +1381,8 @@ int CServer::Run()
 	}
 
 	m_NetServer.SetCallbacks(NewClientCallback, DelClientCallback, this);
+
+	m_Econ.Init(Console());
 
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "server name is '%s'", g_Config.m_SvName);
@@ -1514,6 +1521,8 @@ int CServer::Run()
 	{
 		if(m_aClients[i].m_State != CClient::STATE_EMPTY)
 			m_NetServer.Drop(i, "Server shutdown");
+
+		m_Econ.Shutdown();
 	}
 
 	GameServer()->OnShutdown();
@@ -1545,7 +1554,7 @@ void CServer::ConBan(IConsole::IResult *pResult, void *pUser)
 	const char *pReason = "No reason given";
 
 	if(pResult->NumArguments() > 1)
-		Minutes = pResult->GetInteger(1);
+		Minutes = max(0, pResult->GetInteger(1));
 
 	if(pResult->NumArguments() > 2)
 		pReason = pResult->GetString(2);
@@ -1702,6 +1711,33 @@ void CServer::ConShutdown(IConsole::IResult *pResult, void *pUser)
 	((CServer *)pUser)->m_RunServer = 0;
 }
 
+void CServer::DemoRecorder_HandleAutoStart()
+{
+	if(g_Config.m_SvAutoDemoRecord)
+	{
+#if defined(CONF_TEERACE)
+		m_aDemoRecorder[MAX_CLIENTS].Stop();
+#else
+		m_DemoRecorder.Stop();
+#endif
+		char aFilename[128];
+		char aDate[20];
+		str_timestamp(aDate, sizeof(aDate));
+		str_format(aFilename, sizeof(aFilename), "demos/%s_%s.demo", "auto/autorecord", aDate);
+#if defined(CONF_TEERACE)
+		m_aDemoRecorder[MAX_CLIENTS].Start(Storage(), m_pConsole, aFilename, GameServer()->NetVersion(), m_aCurrentMap, m_CurrentMapCrc, "server");
+#else
+		m_DemoRecorder.Start(Storage(), m_pConsole, aFilename, GameServer()->NetVersion(), m_aCurrentMap, m_CurrentMapCrc, "server");
+#endif
+		if(g_Config.m_SvAutoDemoMax)
+		{
+			// clean up auto recorded demos
+			CFileCollection AutoDemos;
+			AutoDemos.Init(Storage(), "demos/server", "autorecord", ".demo", g_Config.m_SvAutoDemoMax);
+		}
+	}
+}
+
 void CServer::ConRecord(IConsole::IResult *pResult, void *pUser)
 {
 	CServer* pServer = (CServer *)pUser;
@@ -1756,7 +1792,7 @@ void CServer::ConchainModCommandUpdate(IConsole::IResult *pResult, void *pUserDa
 	{
 		CServer *pThis = static_cast<CServer *>(pUserData);
 		const IConsole::CCommandInfo *pInfo = pThis->Console()->GetCommandInfo(pResult->GetString(0), CFGFLAG_SERVER, false);
-		int OldAccessLevel;
+		int OldAccessLevel = 0;
 		if(pInfo)
 			OldAccessLevel = pInfo->GetAccessLevel();
 		pfnCallback(pResult, pCallbackUserData);
@@ -1777,6 +1813,16 @@ void CServer::ConchainModCommandUpdate(IConsole::IResult *pResult, void *pUserDa
 	}
 	else
 		pfnCallback(pResult, pCallbackUserData);
+}
+
+void CServer::ConchainConsoleOutputLevelUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
+{
+	pfnCallback(pResult, pCallbackUserData);
+	if(pResult->NumArguments() == 1)
+	{
+		CServer *pThis = static_cast<CServer *>(pUserData);
+		pThis->Console()->SetPrintOutputLevel(pThis->m_PrintCBIndex, pResult->GetInteger(0));
+	}
 }
 
 void CServer::RegisterCommands()
@@ -1800,6 +1846,7 @@ void CServer::RegisterCommands()
 
 	Console()->Chain("sv_max_clients_per_ip", ConchainMaxclientsperipUpdate, this);
 	Console()->Chain("mod_command", ConchainModCommandUpdate, this);
+	Console()->Chain("console_output_level", ConchainConsoleOutputLevelUpdate, this);
 }
 
 

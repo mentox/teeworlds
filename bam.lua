@@ -23,17 +23,17 @@ end
 
 function CHash(output, ...)
 	local inputs = TableFlatten({...})
-	
+
 	output = Path(output)
-	
+
 	-- compile all the files
 	local cmd = Script("scripts/cmd5.py") .. " "
 	for index, inname in ipairs(inputs) do
-		cmd = cmd .. Path(inname) .. " " 
+		cmd = cmd .. Path(inname) .. " "
 	end
-	
+
 	cmd = cmd .. " > " .. output
-	
+
 	AddJob(output, "cmd5 " .. output, cmd)
 	for index, inname in ipairs(inputs) do
 		AddDependency(output, inname)
@@ -133,6 +133,9 @@ function Intermediate_Output(settings, input)
 end
 
 function build(settings)
+	-- apply compiler settings
+	config.compiler:Apply(settings)
+	
 	--settings.objdir = Path("objs")
 	settings.cc.Output = Intermediate_Output
 	
@@ -167,7 +170,7 @@ function build(settings)
 		settings.link.libs:Add("ole32")
 		settings.link.libs:Add("shell32")
 	end
-	
+
 	-- compile zlib if needed
 	if config.zlib.value == 1 then
 		settings.link.libs:Add("z")
@@ -184,7 +187,6 @@ function build(settings)
 	wavpack = Compile(settings, Collect("src/engine/external/wavpack/*.c"))
 	pnglite = Compile(settings, Collect("src/engine/external/pnglite/*.c"))
 	json = Compile(settings, Collect("src/engine/external/json/*.cpp"))
-	--encrypt = Compile(settings, Collect("src/engine/external/encrypt/*.c", "src/engine/external/encrypt/*.cpp"))
 	
 	-- build game components
 	engine_settings = settings:Copy()
@@ -219,7 +221,7 @@ function build(settings)
 				end
 			end
 		end
-		
+
 	elseif family == "windows" then
 		client_settings.link.libs:Add("opengl32")
 		client_settings.link.libs:Add("glu32")
@@ -234,13 +236,14 @@ function build(settings)
 	config.sdl:Apply(client_settings)
 	-- apply freetype settings
 	config.freetype:Apply(client_settings)
-	
+
 	engine = Compile(engine_settings, Collect("src/engine/shared/*.cpp", "src/base/*.c"))
 	client = Compile(client_settings, Collect("src/engine/client/*.cpp"))
 	server = Compile(server_settings, Collect("src/engine/server/*.cpp"))
-	
+
 	versionserver = Compile(settings, Collect("src/versionsrv/*.cpp"))
 	masterserver = Compile(settings, Collect("src/mastersrv/*.cpp"))
+	game_http = Compile(settings, Collect("src/game/http/*.cpp"))
 	game_shared = Compile(settings, Collect("src/game/*.cpp"), nethash, network_source)
 	game_client = Compile(settings, CollectRecursive("src/game/client/*.cpp"), client_content_source)
 	game_server = Compile(settings, CollectRecursive("src/game/server/*.cpp"), server_content_source)
@@ -255,31 +258,31 @@ function build(settings)
 		client_osxlaunch = Compile(client_settings, "src/osxlaunch/client.m")
 		server_osxlaunch = Compile(launcher_settings, "src/osxlaunch/server.m")
 	end
-	
+
 	tools = {}
 	for i,v in ipairs(tools_src) do
 		toolname = PathFilename(PathBase(v))
 		tools[i] = Link(settings, toolname, Compile(settings, v), engine, zlib, pnglite)
 	end
-	
+
 	-- build client, server, version server and master server
 	client_exe = Link(client_settings, "teeworlds", game_shared, game_client,
 		engine, client, game_editor, zlib, pnglite, wavpack,
-		client_link_other, client_osxlaunch)
+		client_link_other, client_osxlaunch, game_http)
 
 	if string.find(settings.config_name, "teerace") then
 		server_exe = Link(server_settings, "teeworlds_srv", engine, server,
-			game_shared, game_server, zlib, server_link_other, json)--, encrypt)
+			game_shared, game_server, zlib, server_link_other, json, game_http)
 	else
 		server_exe = Link(server_settings, "teeworlds_hpracesrv", engine, server,
-			game_shared, game_server, zlib, server_link_other)
+			game_shared, game_server, zlib, server_link_other, game_http)
 	end
 
 	serverlaunch = {}
 	if platform == "macosx" then
 		serverlaunch = Link(launcher_settings, "serverlaunch", server_osxlaunch)
 	end
-		
+
 	versionserver_exe = Link(server_settings, "versionsrv", versionserver,
 		engine, zlib)
 
@@ -376,15 +379,15 @@ if platform == "macosx"  and arch == "ia32" then
 	debug_sql_settings_ppc.cc.defines:Add("CONF_DEBUG", "CONF_SQL")
 	
 	debug_teerace_settings_ppc = debug_sql_settings:Copy()
-	debug_teerace_settings_ppc.config_name = "sql_debug_ppc"
-	debug_teerace_settings_ppc.config_ext = "_sql_ppc_d"
+	debug_teerace_settings_ppc.config_name = "teerace_debug_ppc"
+	debug_teerace_settings_ppc.config_ext = "_teerace_ppc_d"
 	debug_teerace_settings_ppc.cc.flags:Add("-arch ppc")
 	debug_teerace_settings_ppc.link.flags:Add("-arch ppc")
 	debug_teerace_settings_ppc.cc.defines:Add("CONF_DEBUG", "CONF_TEERACE")
 	
 	debug_teerace_sql_settings_ppc = debug_sql_settings:Copy()
-	debug_teerace_sql_settings_ppc.config_name = "sql_debug_ppc"
-	debug_teerace_sql_settings_ppc.config_ext = "_sql_ppc_d"
+	debug_teerace_sql_settings_ppc.config_name = "teerace_sql_debug_ppc"
+	debug_teerace_sql_settings_ppc.config_ext = "_teerace_sql_ppc_d"
 	debug_teerace_sql_settings_ppc.cc.flags:Add("-arch ppc")
 	debug_teerace_sql_settings_ppc.link.flags:Add("-arch ppc")
 	debug_teerace_sql_settings_ppc.cc.defines:Add("CONF_DEBUG", "CONF_TEERACE", "CONF_SQL")
@@ -404,15 +407,15 @@ if platform == "macosx"  and arch == "ia32" then
 	release_sql_settings_ppc.cc.defines:Add("CONF_RELEASE", "CONF_SQL")
 	
 	release_teerace_settings_ppc = release_sql_settings:Copy()
-	release_teerace_settings_ppc.config_name = "sql_release_ppc"
-	release_teerace_settings_ppc.config_ext = "_sql_ppc"
+	release_teerace_settings_ppc.config_name = "teerace_release_ppc"
+	release_teerace_settings_ppc.config_ext = "_teerace_ppc"
 	release_teerace_settings_ppc.cc.flags:Add("-arch ppc")
 	release_teerace_settings_ppc.link.flags:Add("-arch ppc")
 	release_teerace_settings_ppc.cc.defines:Add("CONF_RELEASE", "CONF_TEERACE")
 	
 	release_teerace_sql_settings_ppc = release_sql_settings:Copy()
-	release_teerace_sql_settings_ppc.config_name = "sql_release_ppc"
-	release_teerace_sql_settings_ppc.config_ext = "_sql_ppc"
+	release_teerace_sql_settings_ppc.config_name = "teerace_sql_release_ppc"
+	release_teerace_sql_settings_ppc.config_ext = "_teerace_sql_ppc"
 	release_teerace_sql_settings_ppc.cc.flags:Add("-arch ppc")
 	release_teerace_sql_settings_ppc.link.flags:Add("-arch ppc")
 	release_teerace_sql_settings_ppc.cc.defines:Add("CONF_RELEASE", "CONF_TEERACE", "CONF_SQL")
@@ -432,15 +435,15 @@ if platform == "macosx"  and arch == "ia32" then
 	debug_sql_settings_x86.cc.defines:Add("CONF_DEBUG", "CONF_SQL")
 	
 	debug_teerace_settings_x86 = debug_sql_settings:Copy()
-	debug_teerace_settings_x86.config_name = "sql_debug_x86"
-	debug_teerace_settings_x86.config_ext = "_sql_x86_d"
+	debug_teerace_settings_x86.config_name = "teerace_debug_x86"
+	debug_teerace_settings_x86.config_ext = "_teerace_x86_d"
 	debug_teerace_settings_x86.cc.flags:Add("-arch i386")
 	debug_teerace_settings_x86.link.flags:Add("-arch i386")
 	debug_teerace_settings_x86.cc.defines:Add("CONF_DEBUG", "CONF_TEERACE")
 	
 	debug_teerace_sql_settings_x86 = debug_sql_settings:Copy()
-	debug_teerace_sql_settings_x86.config_name = "sql_debug_x86"
-	debug_teerace_sql_settings_x86.config_ext = "_sql_x86_d"
+	debug_teerace_sql_settings_x86.config_name = "teerace_sql_debug_x86"
+	debug_teerace_sql_settings_x86.config_ext = "_teerace_sql_x86_d"
 	debug_teerace_sql_settings_x86.cc.flags:Add("-arch i386")
 	debug_teerace_sql_settings_x86.link.flags:Add("-arch i386")
 	debug_teerace_sql_settings_x86.cc.defines:Add("CONF_DEBUG", "CONF_TEERACE", "CONF_SQL")
@@ -460,15 +463,15 @@ if platform == "macosx"  and arch == "ia32" then
 	release_sql_settings_x86.cc.defines:Add("CONF_RELEASE", "CONF_SQL")
 	
 	release_teerace_settings_x86 = release_sql_settings:Copy()
-	release_teerace_settings_x86.config_name = "sql_release_x86"
-	release_teerace_settings_x86.config_ext = "_sql_x86"
+	release_teerace_settings_x86.config_name = "teerace_release_x86"
+	release_teerace_settings_x86.config_ext = "_teerace_x86"
 	release_teerace_settings_x86.cc.flags:Add("-arch i386")
 	release_teerace_settings_x86.link.flags:Add("-arch i386")
 	release_teerace_settings_x86.cc.defines:Add("CONF_RELEASE", "CONF_TEERACE")
 	
 	release_teerace_sql_settings_x86 = release_sql_settings:Copy()
-	release_teerace_sql_settings_x86.config_name = "sql_release_x86"
-	release_teerace_sql_settings_x86.config_ext = "_sql_x86"
+	release_teerace_sql_settings_x86.config_name = "teerace_sql_release_x86"
+	release_teerace_sql_settings_x86.config_ext = "_teerace_sql_x86"
 	release_teerace_sql_settings_x86.cc.flags:Add("-arch i386")
 	release_teerace_sql_settings_x86.link.flags:Add("-arch i386")
 	release_teerace_sql_settings_x86.cc.defines:Add("CONF_RELEASE", "CONF_TEERACE", "CONF_SQL")

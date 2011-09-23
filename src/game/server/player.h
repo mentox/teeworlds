@@ -108,12 +108,6 @@ public:
 	bool m_IsUsingRaceClient;
 
 	int m_HpTeamColor;
-
-#if defined(CONF_TEERACE)
-	int m_GlobalRank;
-	int m_MapRank;
-	bool m_RequestedBestTime;
-#endif
 	
 private:
 	CCharacter *m_pCharacter;

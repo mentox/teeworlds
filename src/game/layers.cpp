@@ -17,6 +17,10 @@ CLayers::CLayers()
 
 void CLayers::Init(class IKernel *pKernel)
 {
+	// reset pointers to race specific layers
+	m_pTeleLayer = 0;
+	m_pSpeedupLayer = 0;
+
 	m_pMap = pKernel->RequestInterface<IMap>();
 	m_pMap->GetType(MAPITEMTYPE_GROUP, &m_GroupsStart, &m_GroupsNum);
 	m_pMap->GetType(MAPITEMTYPE_LAYER, &m_LayersStart, &m_LayersNum);
@@ -31,7 +35,7 @@ void CLayers::Init(class IKernel *pKernel)
 			if(pLayer->m_Type == LAYERTYPE_TILES)
 			{
 				CMapItemLayerTilemap *pTilemap = reinterpret_cast<CMapItemLayerTilemap *>(pLayer);
-				if(pTilemap->m_Flags&1)
+				if(pTilemap->m_Flags&TILESLAYERFLAG_GAME)
 				{
 					m_pGameLayer = pTilemap;
 					m_pGameGroup = pGroup;

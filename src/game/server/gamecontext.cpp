@@ -24,11 +24,13 @@
 #include "gamemodes/fastcap.h"
 #include "gamemodes/hprace.h"
 #include "score.h"
+#include "score/file_score.h"
 #if defined(CONF_SQL)
 #include "score/sql_score.h"
 #endif
-#include "score/file_score.h"
 #if defined(CONF_TEERACE)
+#include "score/wa_score.h"
+#include <engine/external/json/writer.h>
 #include "webapp.h"
 #endif
 
@@ -446,22 +448,45 @@ void CGameContext::OnTick()
 #if defined(CONF_TEERACE)
 	if(m_pWebapp)
 	{
-		m_pWebapp->Tick();
+		m_pWebapp->Update();
 		if(m_LastPing == -1 || m_LastPing+Server()->TickSpeed()*60 < Server()->Tick())
 		{
-			CWebPing::CParam *pParams = new CWebPing::CParam();
+			Json::Value Data;
+			Json::FastWriter Writer;
+			
+			int Num = 0;
 			for(int i = 0; i < MAX_CLIENTS; i++)
 			{
 				if(m_apPlayers[i])
 				{
-					pParams->m_lName.add(Server()->ClientName(i));
-					pParams->m_lClan.add(Server()->ClientClan(i));
-					pParams->m_lUserID.add(Server()->GetUserID(i));
+					if(Server()->GetUserID(i) > 0)
+					{
+						char aBuf[16];
+						str_format(aBuf, sizeof(aBuf), "%d", Server()->GetUserID(i));
+						char aName[MAX_NAME_LENGTH];
+						str_copy(aName, Server()->ClientName(i), sizeof(aName));
+						str_sanitize_strong(aName);
+						Data["users"][aBuf] = aName;
+					}
+					else
+					{
+						char aName[MAX_NAME_LENGTH];
+						str_copy(aName, Server()->ClientName(i), sizeof(aName));
+						str_sanitize_strong(aName);
+						Data["anonymous"][Num] = aName;
+						Num++;
+					}
 				}
 			}
-			if(m_LastPing == -1)
-				pParams->m_CrcCheck = true;
-			m_pWebapp->AddJob(CWebPing::Ping, pParams, 0);
+			
+			Data["map"] = g_Config.m_SvMap;
+
+			std::string Json = Writer.write(Data);
+			
+			CRequest *pRequest = m_pWebapp->CreateRequest("ping/", CRequest::HTTP_POST);
+			pRequest->SetBody(Json.c_str(), Json.length());
+			m_pWebapp->SendRequest(pRequest, WEB_PING_PING);
+			
 			m_LastPing = Server()->Tick();
 		}
 	}
@@ -576,15 +601,26 @@ void CGameContext::OnTick()
 
 // Server hooks
 #if defined(CONF_TEERACE)
-void CGameContext::OnTeeraceAuth(int ClientID, const char *pStr, CUnpacker Unpacker)
+void CGameContext::OnTeeraceAuth(int ClientID, const char *pStr, int SendRconCmds)
 {
 	if(str_comp_num(pStr, "teerace:", 8) == 0)
 	{
-		CWebUser::CParam *pParams = new CWebUser::CParam();
-		pParams->m_ClientID = ClientID;
-		pParams->m_Unpacker = Unpacker;
-		if(m_pWebapp && Server()->GetUserID(ClientID) <= 0 && sscanf(pStr, "teerace:%s", pParams->m_aToken) == 1)
-			m_pWebapp->AddJob(CWebUser::AuthToken, pParams);
+		char m_aToken[32];
+		if(m_pWebapp && Server()->GetUserID(ClientID) <= 0 && sscanf(pStr, "teerace:%s", m_aToken) == 1)
+		{
+			Json::Value Data;
+			Json::FastWriter Writer;
+			Data["api_token"] = m_aToken;
+			std::string Json = Writer.write(Data);
+
+			CWebUserAuthData *pUserData = new CWebUserAuthData();
+			pUserData->m_ClientID = ClientID;
+			pUserData->m_SendRconCmds = SendRconCmds;
+
+			CRequest *pRequest = m_pWebapp->CreateRequest("users/auth_token/", CRequest::HTTP_POST);
+			pRequest->SetBody(Json.c_str(), Json.length());
+			m_pWebapp->SendRequest(pRequest, WEB_USER_AUTH, pUserData);
+		}
 	}
 }
 #endif
@@ -661,14 +697,19 @@ void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 #if defined(CONF_TEERACE)
 	// add job to update play time
 	int UserID = Server()->GetUserID(ClientID);
-	if(UserID > 0)
+	if(m_pWebapp && UserID > 0)
 	{
 		// calculate time in seconds
-		int Seconds = Server()->GetPlayTicks(ClientID)/Server()->TickSpeed();
-		CWebUser::CParam *pParams = new CWebUser::CParam();
-		pParams->m_UserID = UserID;
-		pParams->m_PlayTime = Seconds;
-		m_pWebapp->AddJob(CWebUser::PlayTime, pParams);
+		Json::Value Post;
+		Json::FastWriter Writer;
+		Post["seconds"] = Server()->GetPlayTicks(ClientID)/Server()->TickSpeed();
+		std::string Json = Writer.write(Post);
+
+		char aURI[128];
+		str_format(aURI, sizeof(aURI), "users/playtime/%d/", UserID);
+		CRequest *pRequest = m_pWebapp->CreateRequest(aURI, CRequest::HTTP_PUT);
+		pRequest->SetBody(Json.c_str(), Json.length());
+		m_pWebapp->SendRequest(pRequest, WEB_USER_PLAYTIME);
 	}
 #endif
 	AbortVoteKickOnDisconnect(ClientID);
@@ -687,6 +728,37 @@ void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 			m_apPlayers[i]->m_SpectatorID = SPEC_FREEVIEW;
 	}
 }
+
+#if defined(CONF_TEERACE)
+// TODO: rework this / move this somewhere else
+float HueToRgb(float v1, float v2, float h)
+{
+   if(h < 0.0f) h += 1;
+   if(h > 1.0f) h -= 1;
+   if((6.0f * h) < 1.0f) return v1 + (v2 - v1) * 6.0f * h;
+   if((2.0f * h) < 1.0f) return v2;
+   if((3.0f * h) < 2.0f) return v1 + (v2 - v1) * ((2.0f/3.0f) - h) * 6.0f;
+   return v1;
+}
+
+int HslToRgb(int v)
+{
+	vec3 HSL = vec3(((v>>16)&0xff)/255.0f, ((v>>8)&0xff)/255.0f, 0.5f+(v&0xff)/255.0f*0.5f);
+	vec3 RGB;
+	if(HSL.s == 0.0f)
+		RGB = vec3(HSL.l, HSL.l, HSL.l);
+	else
+	{
+		float v2 = HSL.l < 0.5f ? HSL.l * (1.0f + HSL.s) : (HSL.l+HSL.s) - (HSL.s*HSL.l);
+		float v1 = 2.0f * HSL.l - v2;
+
+		RGB = vec3(HueToRgb(v1, v2, HSL.h + (1.0f/3.0f)), HueToRgb(v1, v2, HSL.h), HueToRgb(v1, v2, HSL.h - (1.0f/3.0f)));
+	}
+	
+	RGB = RGB*255;
+	return (((int)RGB.r)<<16)|(((int)RGB.g)<<8)|(int)RGB.b;
+}
+#endif
 
 void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 {
@@ -737,98 +809,23 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 						return;
 					}
 					
-					int Num = 1;
+					int StartRank = 1;
 					
-					if(sscanf(pCommand, "top5 %d", &Num) == 1)
-						Score()->ShowTop5(pPlayer->GetCID(), Num);
+					if(sscanf(pCommand, "top5 %d", &StartRank) == 1)
+						Score()->ShowTop5(pPlayer->GetCID(), StartRank);
 					else
 						Score()->ShowTop5(pPlayer->GetCID());
-					
-	#if defined(CONF_TEERACE)
-					if(m_pWebapp->CurrentMap()->m_ID > -1)
-					{
-						if(!m_pWebapp->DefaultScoring())
-						{
-							CWebTop::CParam *pParams = new CWebTop::CParam();
-							pParams->m_Start = Num;
-							pParams->m_ClientID = ClientID;
-							m_pWebapp->AddJob(CWebTop::GetTop5, pParams);
-						}
-					}
-					else
-						SendChatTarget(ClientID, "This map is not a teerace map.");
-	#endif
 				}
 				else if(!str_comp_num(pCommand, "rank", 5))
 				{
-					char aName[256];
-					
+					char aName[64];
 					if(g_Config.m_SvShowTimes && sscanf(pCommand, "rank %s", aName) == 1)
 					{
 						Score()->ShowRank(pPlayer->GetCID(), aName, true);
-						
-	#if defined(CONF_TEERACE)
-						if(m_pWebapp->CurrentMap()->m_ID > -1)
-						{
-							int UserID = 0;
-							// search for players on the server
-							for(int i = 0; i < MAX_CLIENTS; i++)
-							{
-								// search for 100% match
-								if(m_apPlayers[i] && Server()->GetUserID(i) > 0 && (!str_comp(Server()->ClientName(i), aName) || !str_comp(Server()->GetUserName(i), aName)))
-								{
-									UserID = Server()->GetUserID(i);
-									str_copy(aName, Server()->GetUserName(i), sizeof(aName));
-									break;
-								}
-							}
-							
-							if(!UserID)
-							{
-								// search for players on the server
-								for(int i = 0; i < MAX_CLIENTS; i++)
-								{
-									// search for part match
-									if(m_apPlayers[i] && Server()->GetUserID(i) > 0 && (str_find_nocase(Server()->ClientName(i), aName) || str_find_nocase(Server()->GetUserName(i), aName)))
-									{
-										UserID = Server()->GetUserID(i);
-										str_copy(aName, Server()->GetUserName(i), sizeof(aName));
-										break;
-									}
-								}
-							}
-							
-							CWebUser::CParam *pParams = new CWebUser::CParam();
-							str_copy(pParams->m_aName, aName, sizeof(pParams->m_aName));
-							pParams->m_ClientID = ClientID;
-							pParams->m_UserID = UserID;
-							m_pWebapp->AddJob(CWebUser::GetRank, pParams);
-						}
-						else
-							SendChatTarget(ClientID, "This map is not a teerace map.");
-	#endif
 					}
 					else
 					{
 						Score()->ShowRank(pPlayer->GetCID(), Server()->ClientName(ClientID));
-						
-	#if defined(CONF_TEERACE)
-						if(m_pWebapp->CurrentMap()->m_ID > -1)
-						{
-							if(Server()->GetUserID(ClientID) > 0)
-							{
-								CWebUser::CParam *pParams = new CWebUser::CParam();
-								str_copy(pParams->m_aName, Server()->GetUserName(ClientID), sizeof(pParams->m_aName));
-								pParams->m_ClientID = ClientID;
-								pParams->m_UserID = Server()->GetUserID(ClientID);
-								m_pWebapp->AddJob(CWebUser::GetRank, pParams);
-							}
-							else
-								SendChatTarget(ClientID, "To get globally ranked create an account at http://race.teesites.net and login.");
-						}
-						else
-							SendChatTarget(ClientID, "This map is not a teerace map.");
-	#endif
 					}
 				}
 	#if defined(CONF_TEERACE)
@@ -842,11 +839,11 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 					char aBuf[256];
 					SendChatTarget(ClientID, "----------- Mapinfo -----------");
-					str_format(aBuf, sizeof(aBuf), "Name: %s", m_pWebapp->MapName());
+					str_format(aBuf, sizeof(aBuf), "Name: %s", g_Config.m_SvMap);
 					SendChatTarget(ClientID, aBuf);
 					str_format(aBuf, sizeof(aBuf), "Author: %s", m_pWebapp->CurrentMap()->m_aAuthor);
 					SendChatTarget(ClientID, aBuf);
-					str_format(aBuf, sizeof(aBuf), "URL: http://%s%s", g_Config.m_SvWebappIp, m_pWebapp->CurrentMap()->m_aURL);
+					str_format(aBuf, sizeof(aBuf), "URL: http://%s%s", g_Config.m_WaWebappIp, m_pWebapp->CurrentMap()->m_aURL);
 					SendChatTarget(ClientID, aBuf);
 					str_format(aBuf, sizeof(aBuf), "Finished runs: %d", m_pWebapp->CurrentMap()->m_RunCount);
 					SendChatTarget(ClientID, aBuf);
@@ -1281,15 +1278,23 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		m_pController->OnPlayerInfoChange(pPlayer);
 
 #if defined(CONF_TEERACE)
-		if(Server()->GetUserID(ClientID) > 0)
+		if(m_pWebapp && Server()->GetUserID(ClientID) > 0)
 		{
-			CWebUser::CParam *pParams = new CWebUser::CParam;
-			pParams->m_UserID = Server()->GetUserID(ClientID);
-			str_copy(pParams->m_SkinName, pMsg->m_pSkin, sizeof(pParams->m_SkinName));
-			pParams->m_UseCustomColor = pMsg->m_UseCustomColor;
-			pParams->m_ColorBody = pMsg->m_ColorBody;
-			pParams->m_ColorFeet = pMsg->m_ColorFeet;
-			m_pWebapp->AddJob(CWebUser::UpdateSkin, pParams);
+			Json::Value Userdata;
+			Json::FastWriter Writer;
+			Userdata["skin_name"] = pMsg->m_pSkin;
+			if(pMsg->m_UseCustomColor)
+			{
+				Userdata["body_color"] = HslToRgb(pMsg->m_ColorBody);
+				Userdata["feet_color"] = HslToRgb(pMsg->m_ColorFeet);
+			}
+			std::string Json = Writer.write(Userdata);
+	
+			char aURI[128];
+			str_format(aURI, sizeof(aURI), "users/skin/%d/", Server()->GetUserID(ClientID));
+			CRequest *pRequest = m_pWebapp->CreateRequest(aURI, CRequest::HTTP_PUT);
+			pRequest->SetBody(Json.c_str(), Json.length());
+			m_pWebapp->SendRequest(pRequest, WEB_USER_UPDATESKIN);
 		}
 #endif
 	}
@@ -1780,7 +1785,7 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("tune_dump", "", CFGFLAG_SERVER, ConTuneDump, this, "Dump tuning");
 
 	Console()->Register("change_map", "?r", CFGFLAG_SERVER|CFGFLAG_STORE, ConChangeMap, this, "Change map");
-	Console()->Register("restart", "?i", CFGFLAG_SERVER|CFGFLAG_STORE, ConRestart, this, "Restart in x seconds");
+	Console()->Register("restart", "?i", CFGFLAG_SERVER|CFGFLAG_STORE, ConRestart, this, "Restart in x seconds (0 = abort)");
 	Console()->Register("broadcast", "r", CFGFLAG_SERVER, ConBroadcast, this, "Broadcast message");
 	Console()->Register("say", "r", CFGFLAG_SERVER, ConSay, this, "Say in chat");
 	Console()->Register("set_team", "ii?i", CFGFLAG_SERVER, ConSetTeam, this, "Set team of player to team");
@@ -1846,23 +1851,37 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 
 	RaceController()->InitTeleporter();
 
+#if defined(CONF_TEERACE)
+	// create webapp object
+	if(str_comp(g_Config.m_SvScore, "web") == 0 && !m_pWebapp)
+		m_pWebapp = new CServerWebapp(this);
+	else if(str_comp(g_Config.m_SvScore, "web") != 0 && m_pWebapp)
+	{
+		delete m_pWebapp;
+		m_pWebapp = 0;
+	}
+
+	if(m_pWebapp)
+		m_pWebapp->OnInit();
+#endif
+
 	// delete old score object
 	if(m_pScore)
 		delete m_pScore;
-		
+
 	// create score object
-#if defined(CONF_SQL)
-	if(g_Config.m_SvUseSQL)
-		m_pScore = new CSqlScore(this);
-	else
-#endif
+	if(str_comp(g_Config.m_SvScore, "file") == 0)
 		m_pScore = new CFileScore(this);
-	
-	// create webapp object
-#if defined(CONF_TEERACE)
-	if(g_Config.m_SvUseWebapp && !m_pWebapp)
-		m_pWebapp = new CServerWebapp(this);
+#if defined(CONF_SQL)
+	else if(str_comp(g_Config.m_SvScore, "mysql") == 0)
+		m_pScore = new CSqlScore(this);
 #endif
+#if defined(CONF_TEERACE)
+	else if(str_comp(g_Config.m_SvScore, "web") == 0)
+		m_pScore = new CWebappScore(this);
+#endif
+	else
+		m_pScore = new CFileScore(this);
 		
 	// setup core world
 	//for(int i = 0; i < MAX_CLIENTS; i++)

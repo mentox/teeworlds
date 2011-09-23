@@ -480,7 +480,7 @@ void CGameClient::OnRender()
 		m_All.m_paComponents[i]->OnRender();
 
 	// run webapp tick
-	m_pWebapp->Tick();
+	m_pWebapp->Update();
 
 	// clear new tick flags
 	m_NewTick = false;
@@ -978,6 +978,17 @@ void CGameClient::OnNewSnapshot()
 			}
 		}
 	}
+	// sort player infos by team
+	int Teams[3] = { TEAM_RED, TEAM_BLUE, TEAM_SPECTATORS };
+	int Index = 0;
+	for(int Team = 0; Team < 3; ++Team)
+	{
+		for(int i = 0; i < MAX_CLIENTS && Index < MAX_CLIENTS; ++i)
+		{
+			if(m_Snap.m_paPlayerInfos[i] && m_Snap.m_paPlayerInfos[i]->m_Team == Teams[Team])
+				m_Snap.m_paInfoByTeam[Index++] = m_Snap.m_paPlayerInfos[i];
+		}
+	}
 
 	CTuningParams StandardTuning;
 	CServerInfo CurrentServerInfo;
@@ -1004,10 +1015,10 @@ void CGameClient::OnNewSnapshot()
 				m_IsRace = true;
 				
 				// send login
-				if(g_Config.m_ClApiToken[0])
+				if(g_Config.m_WaApiToken[0])
 				{
 					char aLogin[64];
-					str_format(aLogin, sizeof(aLogin), "teerace:%s", g_Config.m_ClApiToken);
+					str_format(aLogin, sizeof(aLogin), "teerace:%s", g_Config.m_WaApiToken);
 					Client()->RconAuth("", aLogin);
 				}
 			}

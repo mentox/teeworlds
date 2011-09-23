@@ -192,7 +192,7 @@ void CCharacter::HandleNinja()
 				if(m_NumObjectsHit < 10)
 					m_apHitObjects[m_NumObjectsHit++] = aEnts[i];
 
-				aEnts[i]->TakeDamage(vec2(0, 10.0f), g_pData->m_Weapons.m_Ninja.m_pBase->m_Damage, m_pPlayer->GetCID(), WEAPON_NINJA);
+				aEnts[i]->TakeDamage(vec2(0, -10.0f), g_pData->m_Weapons.m_Ninja.m_pBase->m_Damage, m_pPlayer->GetCID(), WEAPON_NINJA);
 			}
 		}*/
 
@@ -537,7 +537,7 @@ void CCharacter::OnPredictedInput(CNetObj_PlayerInput *pNewInput)
 
 #if defined(CONF_TEERACE)
 	// start demo recording
-	if(g_Config.m_SvAutoRecord && m_LastAction == Server()->Tick())
+	if(g_Config.m_WaAutoRecord && m_LastAction == Server()->Tick())
 	{
 		int ClientID = m_pPlayer->GetCID();
 		if(!Server()->IsRecording(ClientID) && Server()->GetUserID(ClientID) > 0 && GameServer()->Webapp()->CurrentMap()->m_ID > -1 && GameServer()->RaceController()->m_aRace[ClientID].m_RaceState == CGameControllerRACE::RACE_NONE)
