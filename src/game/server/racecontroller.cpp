@@ -16,6 +16,9 @@
 
 #include "racecontroller.h"
 
+#include <stdio.h>
+#include <string.h>
+
 IRaceController::IRaceController(class CGameContext *pGameServer) : IGameController(pGameServer)
 {
 	m_pTeleporter = 0;
@@ -174,7 +177,7 @@ void IRaceController::Tick()
 			{
 				Msg.m_Check = (int)(m_aPlayerRace[i].m_CpDiff*100);
 				str_format(aTmp, sizeof(aTmp), "\nCheckpoint | Diff : %+5.2f", m_aPlayerRace[i].m_CpDiff);
-				str_append(aBuftime, aTmp, sizeof(aBuftime));
+				strcat(aBuftime, aTmp);
 			}
 
 			if(GameServer()->m_apPlayers[i]->m_IsUsingRaceClient)
@@ -265,8 +268,8 @@ bool IRaceController::OnRaceStart(int ID, float StartAddTime, bool Check)
 	}
 
 #if defined(CONF_TEERACE)
-	if(Server()->GetUserID(ID) > 0 && GameServer()->Webapp()->CurrentMap()->m_ID > -1 && !Server()->IsGhostRecording(ID))
-		Server()->StartGhostRecord(ID, pChr->GetPlayer()->m_TeeInfos.m_SkinName, pChr->GetPlayer()->m_TeeInfos.m_UseCustomColor, pChr->GetPlayer()->m_TeeInfos.m_ColorBody, pChr->GetPlayer()->m_TeeInfos.m_ColorFeet);
+	if(GameServer()->Webapp() && Server()->GetUserID(ID) > 0 && GameServer()->Webapp()->CurrentMap()->m_ID > -1 && !Server()->IsGhostRecording(ID))
++		Server()->StartGhostRecord(ID, pChr->GetPlayer()->m_TeeInfos.m_SkinName, pChr->GetPlayer()->m_TeeInfos.m_UseCustomColor, pChr->GetPlayer()->m_TeeInfos.m_ColorBody, pChr->GetPlayer()->m_TeeInfos.m_ColorFeet);
 #endif
 
 	return true;
@@ -300,12 +303,9 @@ bool IRaceController::OnRaceEnd(int ID, float FinishTime)
 		bool NewRecord = pBest->Check(FinishTime, p->m_aCpCurrent);
 
 		// save the score
-		if(str_comp_num(Server()->ClientName(i), "nameless tee", 12) != 0 && NewRecord)
-		{
-			GameServer()->Score()->SaveScore(i);
-			if(GameServer()->Score()->CheckRecord(i) && g_Config.m_SvShowTimes)
-				GameServer()->SendRecord(-1);
-		}
+		GameServer()->Score()->SaveScore(i, FinishTime, p->m_aCpCurrent, NewRecord);
+		if(NewRecord && GameServer()->Score()->CheckRecord(i) && g_Config.m_SvShowTimes)
+			GameServer()->SendRecord(-1);
 
 		char aBuf[128];
 		str_format(aBuf, sizeof(aBuf), "%s finished in: %d minute(s) %6.3f second(s)", Server()->ClientName(i), (int)FinishTime / 60, fmod(FinishTime, 60));
@@ -324,39 +324,9 @@ bool IRaceController::OnRaceEnd(int ID, float FinishTime)
 		}
 	}
 	
-#if defined(CONF_TEERACE)	
-	// post to webapp
-	if(GameServer()->Webapp())
-	{
-		CWebRun::CParam *pParams = new CWebRun::CParam();
-		pParams->m_UserID = Server()->GetUserID(ID);
-		pParams->m_ClientID = ID;
-		str_copy(pParams->m_aName, Server()->ClientName(ID), MAX_NAME_LENGTH);
-		str_copy(pParams->m_aClan, Server()->ClientClan(ID), MAX_CLAN_LENGTH);
-		pParams->m_Time = FinishTime;
-		mem_copy(pParams->m_aCpTime, p->m_aCpCurrent, sizeof(pParams->m_aCpTime));
-		
-		if(NewRecord && Server()->GetUserID(ID) > 0)
-		{
-			// set demo and ghost so that it is saved
-			Server()->SaveGhostDemo(ID);
-			pParams->m_Tick = Server()->Tick();
-		}
-		
-		if(GameServer()->Webapp()->CurrentMap()->m_ID > -1)
-			GameServer()->Webapp()->AddJob(CWebRun::Post, pParams);
-		
-		// higher run count
-		GameServer()->Webapp()->CurrentMap()->m_RunCount++;
-	}
-	
-	// set stop record tick
+#if defined(CONF_TEERACE)
 	if(Server()->IsRecording(ID))
 		m_aStopRecordTick[ID] = Server()->Tick()+Server()->TickSpeed();
-	
-	// stop ghost record
-	if(Server()->IsGhostRecording(ID))
-		Server()->StopGhostRecord(ID, FinishTime);
 #endif
 
 	return true;
