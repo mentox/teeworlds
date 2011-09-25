@@ -801,7 +801,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					SendChatTarget(-1, aBuf);
 	#endif
 				}
-				else if(!str_comp_num(pCommand, "top5", 5))
+				else if(!str_comp_num(pCommand, "top5", 4))
 				{
 					if(!g_Config.m_SvShowTimes)
 					{
@@ -816,7 +816,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					else
 						Score()->ShowTop5(pPlayer->GetCID());
 				}
-				else if(!str_comp_num(pCommand, "rank", 5))
+				else if(!str_comp_num(pCommand, "rank", 4))
 				{
 					char aName[64];
 					if(g_Config.m_SvShowTimes && sscanf(pCommand, "rank %s", aName) == 1)

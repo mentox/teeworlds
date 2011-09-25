@@ -53,7 +53,6 @@ protected:
 	} m_aPlayerRace[MAX_CLIENTS];
 
 	int m_aPartnerWishes[MAX_CLIENTS];
-	int hpTeams[MAX_CLIENTS/2];
 
 public:
 
