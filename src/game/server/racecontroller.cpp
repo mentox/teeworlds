@@ -18,6 +18,8 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <vector>
+#include <sstream>
 
 IRaceController::IRaceController(class CGameContext *pGameServer) : IGameController(pGameServer)
 {
@@ -348,27 +350,53 @@ int IRaceController::GetAutoTeam(int ClientID)
 		return TEAM_RED;
 }
 
-int IRaceController::GetEmptyTeam()
+bool IRaceController::GetEmptyTeam(int Team)
 {
-	int TeamPlayerCount[16] = { 0 };
+	int TeamPlayerCount[8] = { 0 };
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
 		if(!GameServer()->m_apPlayers[i])
 			continue;
 
-		int Team = GameServer()->m_apPlayers[i]->GetGameTeam();
-		if(Team == -1)
+		int mTeam = GameServer()->m_apPlayers[i]->GetGameTeam();
+		if(mTeam == -1)
 			continue;
-		TeamPlayerCount[Team]++;
+		TeamPlayerCount[mTeam]++;
 	}
 
-	for(int i = 0; i < 16; i++)
+	if(TeamPlayerCount[Team] == 0)
+			return true;
+
+	return false;
+}
+
+int IRaceController::GetRandTeam() 
+{
+	int id = -1;
+	std::vector<int> randt;
+	for(int i=0;i<(MAX_CLIENTS/2);i++)
 	{
-		if(TeamPlayerCount[i] == 0)
-			return i;
+		if(GetEmptyTeam(i))
+			randt.push_back(i);
+	}
+	
+	while(id==-1)//choose a random color
+	{
+		for(int i=0; i<10; i++)
+		{
+			id = (int) ((float) rand() / RAND_MAX * (randt.size()));
+		}
+	}
+	
+	id = randt[id];
+	
+	if(!GetEmptyTeam(id))
+	{
+		dbg_msg("BUG","id='%d'",id);
+		return -1;
 	}
 
-	return -1;
+	return id;
 }
 
 void IRaceController::TryCreateTeam(int ClientID, int With)
@@ -412,7 +440,7 @@ void IRaceController::TryCreateTeam(int ClientID, int With)
 	}
 	else
 	{
-		int Team = GetEmptyTeam();
+		int Team = GetRandTeam();
 		GameServer()->m_apPlayers[ClientID]->SetGameTeam(Team);
 		GameServer()->m_apPlayers[With]->SetGameTeam(Team);
 		m_aPartnerWishes[ClientID] = -1;

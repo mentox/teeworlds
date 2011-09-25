@@ -53,6 +53,7 @@ protected:
 	} m_aPlayerRace[MAX_CLIENTS];
 
 	int m_aPartnerWishes[MAX_CLIENTS];
+	int hpTeams[MAX_CLIENTS/2];
 
 public:
 
@@ -96,7 +97,8 @@ public:
 	virtual void TryCreateTeam(int ClientID, int With);
 	virtual void LeaveTeam(int ClientID, bool Disconnect = false);
 
-	virtual int GetEmptyTeam();
+	virtual bool GetEmptyTeam(int Team);
+	virtual int GetRandTeam();
 
 	virtual bool CanJoinTeam(int Team, int ClientID);
 };
