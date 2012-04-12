@@ -36,6 +36,9 @@ void CDoor::ResetCollision()
 				|| GameServer()->Collision()->GetTile(m_Pos.x, m_Pos.y)
 				|| GameServer()->Collision()->GetFTile(m_Pos.x, m_Pos.y))
 			break;
+		else if (GameServer()->Collision()->IsNoLaser(CurrentPos.x, CurrentPos.y) == 8
+				|| GameServer()->Collision()->IsFNoLaser(CurrentPos.x, CurrentPos.y) == 8)
+				break;
 		else
 			GameServer()->Collision()->SetDCollisionAt(
 					m_Pos.x + (m_Direction.x * i),

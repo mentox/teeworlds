@@ -153,6 +153,13 @@ bool CGameTeams::SetCharacterTeam(int ClientID, int Team)
 		else if (Team != TEAM_SUPER)
 			return false;
 	}
+	//No more then 2 players in team
+	if (Team != TEAM_SUPER && Count(Team) >= 2 && g_Config.m_SvTeePair)
+	{
+		GameServer()->SendChatTarget(ClientID,"Only 2 Player Teams are allowed!");
+		return false;
+	}
+
 	SetForceCharacterTeam(ClientID, Team);
 
 	//GameServer()->CreatePlayerSpawn(Character(id)->m_Core.m_Pos, TeamMask());

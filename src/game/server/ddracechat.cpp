@@ -555,7 +555,7 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 				pSelf->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
 				pPlayer->m_Last_Team = pSelf->Server()->Tick();
 			}
-			else
+			else if (!g_Config.m_SvTeePair)
 			{
 				pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 						"You cannot join this team at this time");

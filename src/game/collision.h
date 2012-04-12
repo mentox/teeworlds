@@ -88,6 +88,8 @@ public:
 	int IsCheckpoint(int Index);
 	int IsFCheckpoint(int Index);
 
+	int IsDeathTeamFlock(int Index);
+
 	int IsMover(int x, int y, int* Flags);
 
 	vec2 CpSpeed(int index, int Flags = 0);

@@ -1846,6 +1846,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		g_Config.m_SvHit = 1;
 		g_Config.m_SvEndlessDrag = 0;
 		g_Config.m_SvOldLaser = 0;
+		g_Config.m_SvTeePair = 0;
 	}
 
 	char buf[512];
@@ -1931,6 +1932,11 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 				m_Tuning.Set("player_hooking", 0);
 				dbg_msg("Game Layer", "Found No Player Hooking Tile");
 			}
+			else if(Index == TILE_TEEPAIR)
+			{
+				g_Config.m_SvTeePair = 1;
+				dbg_msg("Game Layer", "Found 2 Player Team Tile");
+			}
 
 			if(Index >= ENTITY_OFFSET)
 			{
@@ -1967,6 +1973,12 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 					m_Tuning.Set("player_hooking", 0);
 					dbg_msg("Front Layer", "Found No Player Hooking Tile");
 				}
+				else if(Index == TILE_TEEPAIR)
+				{
+					g_Config.m_SvTeePair = 1;
+					dbg_msg("Game Layer", "Found 2 Player Team Tile");
+				}
+
 				if(Index >= ENTITY_OFFSET)
 				{
 					vec2 Pos(x*32.0f+16.0f, y*32.0f+16.0f);

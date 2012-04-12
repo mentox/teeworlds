@@ -87,7 +87,7 @@ void CCollision::Init(class CLayers *pLayers)
 		{
 			Index = m_pFront[i].m_Index;
 
-			if(Index <= TILE_NPH)
+			if(Index <= TILE_TEEPAIR)
 			{
 				switch(Index)
 				{
@@ -108,12 +108,12 @@ void CCollision::Init(class CLayers *pLayers)
 				}
 
 				// DDRace tiles
-				if(Index == TILE_THROUGH || (Index >= TILE_FREEZE && Index <= TILE_UNFREEZE) || (Index >= TILE_SWITCHOPEN && Index <= TILE_TELECHECKIN) || (Index >= TILE_BEGIN && Index <= TILE_STOPA) || Index == TILE_CP || Index == TILE_CP_F || (Index >= TILE_OLDLASER && Index <= TILE_NPH) || (Index >= TILE_EHOOK_START && Index <= TILE_SOLO_END) || (Index >= TILE_DFREEZE && Index <= TILE_DUNFREEZE))
+				if(Index == TILE_THROUGH || (Index >= TILE_FREEZE && Index <= TILE_UNFREEZE) || (Index >= TILE_SWITCHOPEN && Index <= TILE_TELECHECKIN) || (Index >= TILE_BEGIN && Index <= TILE_STOPA) || Index == TILE_CP || Index == TILE_CP_F || (Index >= TILE_OLDLASER && Index <= TILE_TEEPAIR) || (Index >= TILE_EHOOK_START && Index <= TILE_SOLO_END) || (Index >= TILE_DFREEZE && Index <= TILE_DUNFREEZE))
 					m_pFront[i].m_Index = Index;
 			}
 		}
 		Index = m_pTiles[i].m_Index;
-		if(Index <= TILE_NPH)
+		if(Index <= TILE_TEEPAIR)
 		{
 			switch(Index)
 			{
@@ -134,7 +134,7 @@ void CCollision::Init(class CLayers *pLayers)
 			}
 
 			// DDRace tiles
-			if(Index == TILE_THROUGH || (Index >= TILE_FREEZE && Index <= TILE_UNFREEZE) || (Index >= TILE_SWITCHOPEN && Index <= TILE_TELECHECKIN) || (Index >= TILE_BEGIN && Index <= TILE_STOPA) || Index == TILE_CP || Index == TILE_CP_F || (Index >= TILE_OLDLASER && Index <= TILE_NPH) || (Index >= TILE_EHOOK_START && Index <= TILE_SOLO_END) || (Index >= TILE_DFREEZE && Index <= TILE_DUNFREEZE))
+			if(Index == TILE_THROUGH || (Index >= TILE_FREEZE && Index <= TILE_UNFREEZE) || (Index >= TILE_SWITCHOPEN && Index <= TILE_TELECHECKIN) || (Index >= TILE_BEGIN && Index <= TILE_STOPA) || Index == TILE_CP || Index == TILE_CP_F || (Index >= TILE_OLDLASER && Index <= TILE_TEEPAIR) || (Index >= TILE_EHOOK_START && Index <= TILE_SOLO_END) || (Index >= TILE_DFREEZE && Index <= TILE_DUNFREEZE))
 				m_pTiles[i].m_Index = Index;
 		}
 	}
@@ -961,4 +961,15 @@ int CCollision::IsFCheckpoint(int Index)
 	if(z >= 35 && z <= 59)
 		return z-35;
 	return -1;
+}
+
+int CCollision::IsDeathTeamFlock(int Index)
+{
+	if(Index < 0 || !m_pFront)
+		return 0;
+	
+	if(m_pFront[Index].m_Index == TILE_DEATH_TEAM_FLOCK)
+		return 1;
+	
+	return 0;
 }

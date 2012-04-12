@@ -1051,6 +1051,13 @@ void CCharacter::HandleSkippableTiles(int Index)
 			return;
 		}
 
+	if(Team() == TEAM_FLOCK && GameServer()->Collision()->IsDeathTeamFlock(Index))
+	{
+		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
+		GameServer()->SendChatTarget(GetPlayer()->GetCID(),"Map requires you to be in a team and with other tees to start");
+		return;
+	}
+
 	if(Index < 0)
 		return;
 
