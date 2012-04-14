@@ -617,7 +617,7 @@ void CMenus::RenderInGameDDRace(CUIRect MainView)
 	//Box.VSplitLeft(4.0f, 0, &Box);
 	Box.VSplitLeft(80.0f, &Button, &Box);
 	static int s_GhostButton=0;
-	if(DoButton_MenuTab(&s_GhostButton, Localize("Ghost"), m_DDRacePage==PAGE_GHOST, &Button, 0))
+	if(DoButton_MenuTab(&s_GhostButton, Localize("Ghost"), m_DDRacePage==PAGE_GHOST, &Button, CUI::CORNER_TR))
 	{
 		m_DDRacePage = PAGE_GHOST;
 	}
