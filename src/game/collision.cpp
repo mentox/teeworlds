@@ -962,14 +962,3 @@ int CCollision::IsFCheckpoint(int Index)
 		return z-35;
 	return -1;
 }
-
-int CCollision::IsDeathTeamFlock(int Index)
-{
-	if(Index < 0 || !m_pFront)
-		return 0;
-	
-	if(m_pFront[Index].m_Index == TILE_DEATH_TEAM_FLOCK)
-		return 1;
-	
-	return 0;
-}

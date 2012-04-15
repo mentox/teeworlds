@@ -127,8 +127,7 @@ enum
 	TILE_EHOOK,
 	TILE_NOHIT,
 	TILE_NPH,
-	TILE_TEEPAIR,
-	TILE_DEATH_TEAM_FLOCK = 0x92,//Remember to change this in collision.cpp if you add anymore tiles
+	TILE_TEEPAIR,//Remember to change this in collision.cpp if you add anymore tiles
 	//End of higher tiles
 	//Layers
 	LAYER_GAME=0,

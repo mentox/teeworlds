@@ -1906,6 +1906,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		for(int x = 0; x < pTileMap->m_Width; x++)
 		{
 			int Index = pTiles[y*pTileMap->m_Width+x].m_Index;
+			int TileFlags = pTiles[y*pTileMap->m_Width+x].m_Flags;
 
 			if(Index == TILE_OLDLASER)
 			{
@@ -1932,10 +1933,29 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 				m_Tuning.Set("player_hooking", 0);
 				dbg_msg("Game Layer", "Found No Player Hooking Tile");
 			}
-			else if(Index == TILE_TEEPAIR)
+			else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_0)
 			{
 				g_Config.m_SvTeePair = 1;
+				g_Config.m_SvTeamSize = 2;
 				dbg_msg("Game Layer", "Found 2 Player Team Tile");
+			}
+			else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_90)
+			{
+				g_Config.m_SvTeePair = 1;
+				g_Config.m_SvTeamSize = 3;
+				dbg_msg("Game Layer", "Found 3 Player Team Tile");
+			}
+			else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_180)
+			{
+				g_Config.m_SvTeePair = 1;
+				g_Config.m_SvTeamSize = 4;
+				dbg_msg("Game Layer", "Found 4 Player Team Tile");
+			}
+			else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_270)
+			{
+				g_Config.m_SvTeePair = 1;
+				g_Config.m_SvTeamSize = 5;
+				dbg_msg("Game Layer", "Found 5 Player Team Tile");
 			}
 
 			if(Index >= ENTITY_OFFSET)
@@ -1973,10 +1993,29 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 					m_Tuning.Set("player_hooking", 0);
 					dbg_msg("Front Layer", "Found No Player Hooking Tile");
 				}
-				else if(Index == TILE_TEEPAIR)
+				else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_0)
 				{
 					g_Config.m_SvTeePair = 1;
+					g_Config.m_SvTeamSize = 2;
 					dbg_msg("Game Layer", "Found 2 Player Team Tile");
+				}
+				else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_90)
+				{
+					g_Config.m_SvTeePair = 1;
+					g_Config.m_SvTeamSize = 3;
+					dbg_msg("Game Layer", "Found 3 Player Team Tile");
+				}
+				else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_180)
+				{
+					g_Config.m_SvTeePair = 1;
+					g_Config.m_SvTeamSize = 4;
+					dbg_msg("Game Layer", "Found 4 Player Team Tile");
+				}
+				else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_270)
+				{
+					g_Config.m_SvTeePair = 1;
+					g_Config.m_SvTeamSize = 5;
+					dbg_msg("Game Layer", "Found 5 Player Team Tile");
 				}
 
 				if(Index >= ENTITY_OFFSET)

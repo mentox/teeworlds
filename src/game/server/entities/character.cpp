@@ -1051,13 +1051,6 @@ void CCharacter::HandleSkippableTiles(int Index)
 			return;
 		}
 
-	if(Team() == TEAM_FLOCK && GameServer()->Collision()->IsDeathTeamFlock(Index))
-	{
-		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
-		GameServer()->SendChatTarget(GetPlayer()->GetCID(),"Map requires you to be in a team and with other tees to start");
-		return;
-	}
-
 	if(Index < 0)
 		return;
 
@@ -1261,6 +1254,18 @@ void CCharacter::HandleTiles(int Index)
 			if(m_LastStartWarning < Server()->Tick() - 3 * Server()->TickSpeed())
 			{
 				GameServer()->SendChatTarget(GetPlayer()->GetCID(),"Server admin requires you to be in a team and with other tees to start");
+				m_LastStartWarning = Server()->Tick();
+			}
+			Die(GetPlayer()->GetCID(), WEAPON_WORLD);
+			CanBegin = false;
+		}
+		else if(g_Config.m_SvTeePair && (Team() == TEAM_FLOCK || Teams()->Count(Team()) <= 1 || Teams()->Count(Team()) < g_Config.m_SvTeamSize))
+		{
+			if(m_LastStartWarning < Server()->Tick() - 3 * Server()->TickSpeed())
+			{
+				char aBuf[128];
+				str_format(aBuf, sizeof(aBuf), "You need a team that includes %i players", g_Config.m_SvTeamSize);
+				GameServer()->SendChatTarget(GetPlayer()->GetCID(), aBuf);
 				m_LastStartWarning = Server()->Tick();
 			}
 			Die(GetPlayer()->GetCID(), WEAPON_WORLD);
@@ -1623,7 +1628,7 @@ void CCharacter::DDRaceInit()
 	m_TeamBeforeSuper = 0;
 	m_Core.m_Id = GetPlayer()->GetCID();
 	if(GetPlayer()->m_IsUsingDDRaceClient) ((CGameControllerDDRace*)GameServer()->m_pController)->m_Teams.SendTeamsState(GetPlayer()->GetCID());
-	if(g_Config.m_SvTeam == 2)
+	if(g_Config.m_SvTeam == 2 || g_Config.m_SvTeePair)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(),"Please join a team before you start");
 		m_LastStartWarning = Server()->Tick();

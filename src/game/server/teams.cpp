@@ -154,9 +154,11 @@ bool CGameTeams::SetCharacterTeam(int ClientID, int Team)
 			return false;
 	}
 	//No more then 2 players in team
-	if (Team != TEAM_SUPER && Count(Team) >= 2 && g_Config.m_SvTeePair)
+	if (Team != TEAM_SUPER && Count(Team) >= g_Config.m_SvTeamSize && g_Config.m_SvTeePair)
 	{
-		GameServer()->SendChatTarget(ClientID,"Only 2 Player Teams are allowed!");
+		char aBuf[128];
+		str_format(aBuf, sizeof(aBuf), "Only %i Player Teams are allowed.", g_Config.m_SvTeamSize);
+		GameServer()->SendChatTarget(ClientID,aBuf);
 		return false;
 	}
 
