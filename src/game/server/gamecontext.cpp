@@ -1939,7 +1939,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 				g_Config.m_SvTeamSize = 2;
 				dbg_msg("Game Layer", "Found 2 Player Team Tile");
 			}
-			else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_90)
+			else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_270)
 			{
 				g_Config.m_SvTeePair = 1;
 				g_Config.m_SvTeamSize = 3;
@@ -1951,7 +1951,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 				g_Config.m_SvTeamSize = 4;
 				dbg_msg("Game Layer", "Found 4 Player Team Tile");
 			}
-			else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_270)
+			else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_90)
 			{
 				g_Config.m_SvTeePair = 1;
 				g_Config.m_SvTeamSize = 5;
@@ -1999,7 +1999,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 					g_Config.m_SvTeamSize = 2;
 					dbg_msg("Game Layer", "Found 2 Player Team Tile");
 				}
-				else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_90)
+				else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_270)
 				{
 					g_Config.m_SvTeePair = 1;
 					g_Config.m_SvTeamSize = 3;
@@ -2011,7 +2011,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 					g_Config.m_SvTeamSize = 4;
 					dbg_msg("Game Layer", "Found 4 Player Team Tile");
 				}
-				else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_270)
+				else if(Index == TILE_TEEPAIR && TileFlags == ROTATION_90)
 				{
 					g_Config.m_SvTeePair = 1;
 					g_Config.m_SvTeamSize = 5;
